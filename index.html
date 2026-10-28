@@ -360,7 +360,7 @@ if('serviceWorker' in navigator){
           <button class="start-btn rank-btn" ontouchend="event.stopPropagation();" onclick="showRanking()" aria-label="Ranking"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 13.5v7.5M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 4H4v2a3 3 0 0 0 3 3M17 4h3v2a3 3 0 0 1-3 3"/></svg></button>
         </div>
       </div>
-  <div class="app-ver" style="margin-top:6px;padding-top:0;">v3</div>
+  <div class="app-ver" style="margin-top:6px;padding-top:0;">v4</div>
   <div id="user-name-bar" style="margin-top:8px;">
     <div style="display:flex;width:200px;gap:0;margin:0 auto;">
       <input id="user-ini-input" type="text" maxlength="3" placeholder="INI"
@@ -565,6 +565,7 @@ var S={mode:'normal',stim:'a',total:'a',name:'RDS',sport:'',times:[],t0:0,runnin
    EXTREMO: biblioteca de 4 COLORES (rojo, azul, verde, amarillo). Al empezar el ejercicio se muestra que gesto va con cada color (arbitrario y distinto en cada ejercicio), se oculta y salen
    secuencias de colores (3, 4, 5... gestos, nuevas en cada ronda). LIMITE: como Extremo pero con el formato de tiempo del Limite de Perception 2: cuenta atras (LIM_START_MS) que solo corre
    mientras haces los gestos y suma LIM_BONUS_MS por cada gesto acertado; acaba al agotarse el tiempo o al primer fallo.
+   v4: el circulo se dibuja en sentido HORARIO (la figura lleva una flecha dentro que lo indica); en sentido contrario se reconoce como 'circulo al revés' y cuenta como fallo.
    Gestos: un toque, doble toque, dos dedos, tres dedos, deslizar (4 direcciones), dibujar un circulo, mantener pulsado.
    EXTREMO (v2): el codigo y las figuras se ven sin limite; la fase de respuesta tiene tiempo maximo por ronda (EXT_BASE_MS + EXT_PER_MS por gesto) y si se agota termina la partida con lo acertado. En LIMITE la cuenta atras no baja mientras se muestran codigo o figuras.
    DECISIONES MIAS no confirmadas: tiempos de exposicion, caps de rondas (Normal 12, Extremo 8, Limite 10), cuenta atras 15 s + 1 s por gesto, sin sonidos, reconocimiento de gestos y sus umbrales. */
@@ -575,7 +576,7 @@ var EXT_BASE_MS=1500, EXT_PER_MS=1800;   /* v2: Extremo = tiempo maximo POR ROND
 /* v3: dos/tres dedos TOLERANTES: los dedos que lleguen dentro de MT_CLUSTER_MS desde el primero cuentan como el mismo gesto aunque los primeros ya se hayan levantado; si al levantarse todos hay 2 o mas dedos, se espera MT_GRACE_MS por si llega otro */
 var MT_CLUSTER_MS=350, MT_GRACE_MS=160;
 var MT_TAP_MOVE=14, MT_TAP_MAX=450, MT_HOLD_MS=550, MT_DTAP_MS=260, MT_DTAP_DIST=60, MT_SWIPE_MIN=40, MT_SWIPE_RATIO=0.72, MT_CIRCLE_MIN=110, MT_CIRCLE_SWEEP=4.4;
-var MT_GESTOS={tap:'un toque',dtap:'doble toque',two:'dos dedos',three:'tres dedos',circle:'dibujar un círculo',hold:'mantener pulsado',up:'deslizar ↑',down:'deslizar ↓',left:'deslizar ←',right:'deslizar →'};
+var MT_GESTOS={tap:'un toque',dtap:'doble toque',two:'dos dedos',three:'tres dedos',circle:'dibujar un círculo ↻',circleL:'círculo al revés ↺',hold:'mantener pulsado',up:'deslizar ↑',down:'deslizar ↓',left:'deslizar ←',right:'deslizar →'};
 var MT_LIB10=['up','down','left','right','tap','dtap','two','three','circle','hold'];          /* Normal: figura = gesto */
 var MT_POOL4=['tap','dtap','two','up','down','left','right','circle'];                         /* Extremo/Limite: gestos que se pueden asignar a un color */
 var MT_COLS=[['red','Rojo','#D93A3A'],['blue','Azul','#2F6FD6'],['green','Verde','#2A9D5B'],['yellow','Amarillo','#F2B01E']];
@@ -594,7 +595,7 @@ function figSvg(key,size,col){
   else if(key==='dtap') s+='<circle cx="32" cy="32" r="20" fill="'+col+'"/><text x="32" y="41" text-anchor="middle" font-family="Arial" font-size="28" font-weight="700" fill="#fff">2</text>';
   else if(key==='two') s+='<circle cx="18" cy="32" r="12" fill="'+col+'"/><circle cx="46" cy="32" r="12" fill="'+col+'"/>';
   else if(key==='three') s+='<circle cx="12" cy="42" r="9" fill="'+col+'"/><circle cx="32" cy="22" r="9" fill="'+col+'"/><circle cx="52" cy="42" r="9" fill="'+col+'"/>';
-  else if(key==='circle') s+='<circle cx="32" cy="32" r="20" fill="none" stroke="'+col+'" stroke-width="7"/><path d="M44 8 L56 14 L46 22 Z" fill="'+col+'"/>';
+  else if(key==='circle') s+='<circle cx="32" cy="32" r="25" fill="none" stroke="'+col+'" stroke-width="5"/><path d="M27 23.3 A10 10 0 1 1 23.3 37" fill="none" stroke="'+col+'" stroke-width="4.5" stroke-linecap="round"/><path d="M19.8 30.9 L27.2 34.75 L19.4 39.25 Z" fill="'+col+'"/>';   /* v4: la flecha de DENTRO indica el sentido (horario) */
   else if(key==='hold') s+='<circle cx="32" cy="32" r="22" fill="none" stroke="'+lt+'" stroke-width="9"/><circle cx="32" cy="32" r="13" fill="'+col+'"/>';
   return s+'</svg>';
 }
@@ -745,7 +746,7 @@ function mtClassify(){
     var rv=0; rs.forEach(function(r){ rv+=(r-rm)*(r-rm); }); rv=Math.sqrt(rv/rs.length)/(rm||1);
     var sweep=0, pa=Math.atan2(p[0].y-cy,p[0].x-cx);
     for(i=1;i<p.length;i++){ var ang=Math.atan2(p[i].y-cy,p[i].x-cx), d=ang-pa; while(d>Math.PI) d-=2*Math.PI; while(d<-Math.PI) d+=2*Math.PI; sweep+=d; pa=ang; }
-    if(Math.abs(sweep)>=MT_CIRCLE_SWEEP && rv<0.4 && disp<rm*1.3 && rm>14) return 'circle';
+    if(Math.abs(sweep)>=MT_CIRCLE_SWEEP && rv<0.4 && disp<rm*1.3 && rm>14) return sweep>0 ? 'circle' : 'circleL';   /* v4: en pantalla (y hacia abajo) sweep>0 = sentido de las agujas del reloj */
   }
   if(disp>=MT_SWIPE_MIN && disp/len>=MT_SWIPE_RATIO){
     var dx=b.x-a.x, dy=b.y-a.y;
