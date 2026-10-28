@@ -360,7 +360,7 @@ if('serviceWorker' in navigator){
           <button class="start-btn rank-btn" ontouchend="event.stopPropagation();" onclick="showRanking()" aria-label="Ranking"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 13.5v7.5M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 4H4v2a3 3 0 0 0 3 3M17 4h3v2a3 3 0 0 1-3 3"/></svg></button>
         </div>
       </div>
-  <div class="app-ver" style="margin-top:6px;padding-top:0;">v1</div>
+  <div class="app-ver" style="margin-top:6px;padding-top:0;">v2</div>
   <div id="user-name-bar" style="margin-top:8px;">
     <div style="display:flex;width:200px;gap:0;margin:0 auto;">
       <input id="user-ini-input" type="text" maxlength="3" placeholder="INI"
@@ -566,10 +566,12 @@ var S={mode:'normal',stim:'a',total:'a',name:'RDS',sport:'',times:[],t0:0,runnin
    secuencias de colores (3, 4, 5... gestos, nuevas en cada ronda). LIMITE: como Extremo pero con el formato de tiempo del Limite de Perception 2: cuenta atras (LIM_START_MS) que solo corre
    mientras haces los gestos y suma LIM_BONUS_MS por cada gesto acertado; acaba al agotarse el tiempo o al primer fallo.
    Gestos: un toque, doble toque, dos dedos, tres dedos, deslizar (4 direcciones), dibujar un circulo, mantener pulsado.
+   EXTREMO (v2): el codigo y las figuras se ven sin limite; la fase de respuesta tiene tiempo maximo por ronda (EXT_BASE_MS + EXT_PER_MS por gesto) y si se agota termina la partida con lo acertado. En LIMITE la cuenta atras no baja mientras se muestran codigo o figuras.
    DECISIONES MIAS no confirmadas: tiempos de exposicion, caps de rondas (Normal 12, Extremo 8, Limite 10), cuenta atras 15 s + 1 s por gesto, sin sonidos, reconocimiento de gestos y sus umbrales. */
 var MT_EXPO_BASE=1200, MT_EXPO_PER=500;               /* exposicion de las figuras = base + por*n (ms) */
 var MT_MAXLEN={normal:12, extremo:8, limite:10};      /* rondas: longitud 3..tope (en Limite sigue con el tope hasta que falles o se acabe el tiempo) */
 var LIM_START_MS=15000, LIM_BONUS_MS=1000;
+var EXT_BASE_MS=1500, EXT_PER_MS=1800;   /* v2: Extremo = tiempo maximo POR RONDA para hacer los gestos (base + por gesto); la barra superior se vacia solo en la fase de respuesta. El codigo de colores y las figuras se ven sin limite de tiempo */
 var MT_TAP_MOVE=14, MT_TAP_MAX=450, MT_HOLD_MS=550, MT_DTAP_MS=260, MT_DTAP_DIST=60, MT_SWIPE_MIN=40, MT_SWIPE_RATIO=0.72, MT_CIRCLE_MIN=110, MT_CIRCLE_SWEEP=4.4;
 var MT_GESTOS={tap:'un toque',dtap:'doble toque',two:'dos dedos',three:'tres dedos',circle:'dibujar un círculo',hold:'mantener pulsado',up:'deslizar ↑',down:'deslizar ↓',left:'deslizar ←',right:'deslizar →'};
 var MT_LIB10=['up','down','left','right','tap','dtap','two','three','circle','hold'];          /* Normal: figura = gesto */
@@ -672,7 +674,7 @@ function mtStartAnswer(){
   for(i=0;i<S.len;i++) h+='<div class="mt-dot" id="mtDot'+i+'"></div>';
   h+='</div></div>';
   $('mtStage').innerHTML=h; $('mtHint').textContent='Haz los gestos en el mismo orden, en cualquier parte';
-  S.refT=performance.now(); S.last=S.refT; setProgress(S.mode==='limite'?Math.min(1,S.remain/LIM_START_MS):0);
+  S.refT=performance.now(); S.last=S.refT; S.rStart=S.refT; S.rLimit=EXT_BASE_MS+EXT_PER_MS*S.len; setProgress(S.mode==='limite'?Math.min(1,S.remain/LIM_START_MS):(S.mode==='extremo'?1:0));
 }
 function mtGestOk(g,t){
   var rt=Math.max(1,Math.round(t-S.refT));
@@ -680,7 +682,7 @@ function mtGestOk(g,t){
   var d=$('mtDot'+S.k); if(d){ d.className='mt-dot ok'; d.innerHTML=figSvg(g,22,'#fff'); }
   S.k++;
   $('stAvg').textContent=String(S.pts); $('stLast').textContent=String(rt);
-  if(S.mode!=='limite') setProgress(S.k/S.len);
+  if(S.mode==='normal') setProgress(S.k/S.len);
   if(S.k>=S.len){
     S.roundPct.push(100); S.rounds++; S.longest=S.len; S.phase='between';
     $('mtHint').textContent='¡Ronda completa!';
@@ -711,6 +713,11 @@ function loop(){
     else { $('stTime').textContent=(S.remain/1000).toFixed(1); if(S.phase==='answer') setProgress(Math.min(1,S.remain/LIM_START_MS)); }
   } else {
     $('stTime').textContent=fmtTime(now-S.t0);
+    if(S.mode==='extremo' && S.phase==='answer'){
+      var left=S.rLimit-(now-S.rStart);
+      if(left<=0){ setProgress(0); S.roundPct.push(Math.round(100*S.k/S.len)); S.failInfo={round:S.round,k:S.k,exp:S.exp[S.k],got:null,len:S.len}; S.phase='end'; finishRun('time'); return; }
+      setProgress(left/S.rLimit);
+    }
   }
   S.raf=requestAnimationFrame(loop);
 }
