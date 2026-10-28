@@ -360,7 +360,7 @@ if('serviceWorker' in navigator){
           <button class="start-btn rank-btn" ontouchend="event.stopPropagation();" onclick="showRanking()" aria-label="Ranking"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 13.5v7.5M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 4H4v2a3 3 0 0 0 3 3M17 4h3v2a3 3 0 0 1-3 3"/></svg></button>
         </div>
       </div>
-  <div class="app-ver" style="margin-top:6px;padding-top:0;">v5</div>
+  <div class="app-ver" style="margin-top:6px;padding-top:0;">v6</div>
   <div id="user-name-bar" style="margin-top:8px;">
     <div style="display:flex;width:200px;gap:0;margin:0 auto;">
       <input id="user-ini-input" type="text" maxlength="3" placeholder="INI"
@@ -559,7 +559,7 @@ var S={mode:'normal',stim:'a',total:'a',name:'RDS',sport:'',times:[],t0:0,runnin
 
 /* ---------- MEMORY TOUCH (2026-10-28) ----------
    Memoria de trabajo con GESTOS (en silencio: se puede jugar en grupo). Salen figuras, se quitan y hay que hacer de memoria, EN ORDEN, el gesto de cada una (en cualquier parte de la pantalla).
-   NORMAL: biblioteca de 10 figuras, todas del MISMO color (para no condicionar el modo de colores); cada figura sugiere su gesto (flecha = deslizar, anillo = dibujar un circulo...).
+   NORMAL: biblioteca de 9 figuras (v6: se quito 'tres dedos'), todas del MISMO color (para no condicionar el modo de colores); cada figura sugiere su gesto (flecha = deslizar, anillo = dibujar un circulo...).
    Ronda 1 = 3 figuras, ronda 2 = 4 NUEVAS, ronda 3 = 5... (no se repite la secuencia anterior). Resultado = GESTOS ACERTADOS en total (3 + 2 si en la ronda 2 aciertas 2 y fallas el 3o = 5);
    el primer fallo termina la partida. Desempate = reaccion media (tiempo desde el gesto anterior; el 1o desde que se quitan las figuras).
    EXTREMO: biblioteca de 4 COLORES (rojo, azul, verde, amarillo). Al empezar el ejercicio se muestra que gesto va con cada color (arbitrario y distinto en cada ejercicio), se oculta y salen
@@ -577,7 +577,7 @@ var EXT_BASE_MS=1500, EXT_PER_MS=1800;   /* v2: Extremo = tiempo maximo POR ROND
 var MT_CLUSTER_MS=350, MT_GRACE_MS=160;
 var MT_TAP_MOVE=14, MT_TAP_MAX=450, MT_HOLD_MS=550, MT_DTAP_MS=260, MT_DTAP_DIST=60, MT_SWIPE_MIN=40, MT_SWIPE_RATIO=0.72, MT_CIRCLE_MIN=110, MT_CIRCLE_SWEEP=4.4;
 var MT_GESTOS={tap:'un toque',dtap:'doble toque',two:'dos dedos',three:'tres dedos',circle:'dibujar un círculo ↻',circleL:'círculo al revés ↺',hold:'mantener pulsado',up:'deslizar ↑',down:'deslizar ↓',left:'deslizar ←',right:'deslizar →'};
-var MT_LIB10=['up','down','left','right','tap','dtap','two','three','circle','hold'];          /* Normal: figura = gesto */
+var MT_LIB10=['up','down','left','right','tap','dtap','two','circle','hold'];          /* Normal: figura = gesto (v6: 9 figuras, sin 'tres dedos') */
 var MT_POOL4=['tap','dtap','two','up','down','left','right','circle'];                         /* Extremo/Limite: gestos que se pueden asignar a un color */
 var MT_COLS=[['red','Rojo','#D93A3A'],['blue','Azul','#2F6FD6'],['green','Verde','#2A9D5B'],['yellow','Amarillo','#F2B01E']];
 var MT_INK='#27344D';
@@ -592,7 +592,7 @@ function figSvg(key,size,col){
   else if(key==='left') s+='<path d="M8 32 L32 12 V25 H56 V39 H32 V52 Z" fill="'+col+'"/>';
   else if(key==='right') s+='<path d="M56 32 L32 12 V25 H8 V39 H32 V52 Z" fill="'+col+'"/>';
   else if(key==='tap') s+='<circle cx="32" cy="32" r="16" fill="'+col+'"/>';
-  else if(key==='dtap') s+='<circle cx="32" cy="32" r="20" fill="'+col+'"/><text x="32" y="41" text-anchor="middle" font-family="Arial" font-size="28" font-weight="700" fill="#fff">2</text>';
+  else if(key==='dtap') s+='<circle cx="32" cy="32" r="16" fill="'+col+'"/><text x="32" y="39.5" text-anchor="middle" font-family="Arial" font-size="22" font-weight="700" fill="#fff">2</text>';   /* v6: mismo tamano que el punto de 1 toque */
   else if(key==='two') s+='<circle cx="18" cy="32" r="12" fill="'+col+'"/><circle cx="46" cy="32" r="12" fill="'+col+'"/>';
   else if(key==='three') s+='<circle cx="12" cy="42" r="9" fill="'+col+'"/><circle cx="32" cy="22" r="9" fill="'+col+'"/><circle cx="52" cy="42" r="9" fill="'+col+'"/>';
   else if(key==='circle') s+='<path d="M42.9 16.44 A19 19 0 1 1 28.7 13.29" fill="none" stroke="'+col+'" stroke-width="6" stroke-linecap="round"/><path d="M37.6 11.7 L27.9 20.5 L25.5 6.7 Z" fill="'+col+'"/>';   /* v5: circulo ABIERTO del tamano de las demas figuras, con la flecha en las 12:00 apuntando en sentido horario */
