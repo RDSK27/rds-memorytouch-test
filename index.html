@@ -360,7 +360,7 @@ if('serviceWorker' in navigator){
           <button class="start-btn rank-btn" ontouchend="event.stopPropagation();" onclick="showRanking()" aria-label="Ranking"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 13.5v7.5M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 4H4v2a3 3 0 0 0 3 3M17 4h3v2a3 3 0 0 1-3 3"/></svg></button>
         </div>
       </div>
-  <div class="app-ver" style="margin-top:6px;padding-top:0;">v2</div>
+  <div class="app-ver" style="margin-top:6px;padding-top:0;">v3</div>
   <div id="user-name-bar" style="margin-top:8px;">
     <div style="display:flex;width:200px;gap:0;margin:0 auto;">
       <input id="user-ini-input" type="text" maxlength="3" placeholder="INI"
@@ -572,6 +572,8 @@ var MT_EXPO_BASE=1200, MT_EXPO_PER=500;               /* exposicion de las figur
 var MT_MAXLEN={normal:12, extremo:8, limite:10};      /* rondas: longitud 3..tope (en Limite sigue con el tope hasta que falles o se acabe el tiempo) */
 var LIM_START_MS=15000, LIM_BONUS_MS=1000;
 var EXT_BASE_MS=1500, EXT_PER_MS=1800;   /* v2: Extremo = tiempo maximo POR RONDA para hacer los gestos (base + por gesto); la barra superior se vacia solo en la fase de respuesta. El codigo de colores y las figuras se ven sin limite de tiempo */
+/* v3: dos/tres dedos TOLERANTES: los dedos que lleguen dentro de MT_CLUSTER_MS desde el primero cuentan como el mismo gesto aunque los primeros ya se hayan levantado; si al levantarse todos hay 2 o mas dedos, se espera MT_GRACE_MS por si llega otro */
+var MT_CLUSTER_MS=350, MT_GRACE_MS=160;
 var MT_TAP_MOVE=14, MT_TAP_MAX=450, MT_HOLD_MS=550, MT_DTAP_MS=260, MT_DTAP_DIST=60, MT_SWIPE_MIN=40, MT_SWIPE_RATIO=0.72, MT_CIRCLE_MIN=110, MT_CIRCLE_SWEEP=4.4;
 var MT_GESTOS={tap:'un toque',dtap:'doble toque',two:'dos dedos',three:'tres dedos',circle:'dibujar un círculo',hold:'mantener pulsado',up:'deslizar ↑',down:'deslizar ↓',left:'deslizar ←',right:'deslizar →'};
 var MT_LIB10=['up','down','left','right','tap','dtap','two','three','circle','hold'];          /* Normal: figura = gesto */
@@ -723,16 +725,17 @@ function loop(){
 }
 
 /* ---------- reconocimiento de gestos (pantalla de juego, fase "answer") ---------- */
-var MTG={ptrs:{}, n:0, max:0, pts:[], t0:0, hold:false, holdT:0, holdTo:0, pend:null, pendTo:0};
+var MTG={ptrs:{}, n:0, max:0, downs:0, pts:[], t0:0, hold:false, holdT:0, holdTo:0, pend:null, pendTo:0, graceTo:0};
 function mtGestReset(){
-  if(MTG.holdTo){ clearTimeout(MTG.holdTo); MTG.holdTo=0; } if(MTG.pendTo){ clearTimeout(MTG.pendTo); MTG.pendTo=0; }
-  MTG.ptrs={}; MTG.n=0; MTG.max=0; MTG.pts=[]; MTG.hold=false; MTG.pend=null;
+  if(MTG.holdTo){ clearTimeout(MTG.holdTo); MTG.holdTo=0; } if(MTG.pendTo){ clearTimeout(MTG.pendTo); MTG.pendTo=0; } if(MTG.graceTo){ clearTimeout(MTG.graceTo); MTG.graceTo=0; }
+  MTG.ptrs={}; MTG.n=0; MTG.max=0; MTG.downs=0; MTG.pts=[]; MTG.hold=false; MTG.pend=null;
 }
 function mtDist(a,b){ var dx=a.x-b.x, dy=a.y-b.y; return Math.sqrt(dx*dx+dy*dy); }
 function mtClassify(){
   var p=MTG.pts, i, len=0, a=p[0], b=p[p.length-1], disp=mtDist(a,b), dur=b.t-a.t;
-  if(MTG.max>=3) return 'three';
-  if(MTG.max===2) return 'two';
+  var fingers=(MTG.max>=2) ? Math.max(MTG.max,MTG.downs) : 1;
+  if(fingers>=3) return 'three';
+  if(fingers===2) return 'two';
   if(MTG.hold) return 'hold';
   for(i=1;i<p.length;i++) len+=mtDist(p[i],p[i-1]);
   if(len<MT_TAP_MOVE) return 'tap';
@@ -759,7 +762,7 @@ function mtGestEnd(){
     if(MTG.pend && (upT-MTG.pend.t)<=MT_DTAP_MS && mtDist(pos,MTG.pend.pos)<=MT_DTAP_DIST){ var pt=MTG.pend; MTG.pend=null; if(MTG.pendTo){ clearTimeout(MTG.pendTo); MTG.pendTo=0; } mtEmit('dtap',pt.t); }
     else { mtFlushPend(); MTG.pend={t:upT,pos:pos}; MTG.pendTo=setTimeout(function(){ MTG.pendTo=0; if(MTG.pend){ var q=MTG.pend; MTG.pend=null; mtEmit('tap',q.t); } }, MT_DTAP_MS); }
   } else { mtFlushPend(); mtEmit(g, g==='hold'?MTG.holdT:upT); }
-  MTG.ptrs={}; MTG.n=0; MTG.max=0; MTG.pts=[]; MTG.hold=false;
+  MTG.ptrs={}; MTG.n=0; MTG.max=0; MTG.downs=0; MTG.pts=[]; MTG.hold=false;
 }
 function mtIgnoreTarget(e){ var t=e.target; return !!(t && t.closest && t.closest('.navbar,button,.results-actions')); }
 document.addEventListener('pointerdown', function(e){
@@ -767,7 +770,12 @@ document.addEventListener('pointerdown', function(e){
   if(mtIgnoreTarget(e)) return;
   if(e.cancelable) e.preventDefault();
   var now=performance.now();
-  if(MTG.n===0){ MTG.pts=[]; MTG.max=0; MTG.hold=false; MTG.t0=now; }
+  if(MTG.graceTo){   /* gesto de varios dedos esperando por si llega otro: si cae dentro de la ventana se une; si no, se cierra ya */
+    clearTimeout(MTG.graceTo); MTG.graceTo=0;
+    if(now-MTG.t0>MT_CLUSTER_MS){ mtGestEnd(); }
+  }
+  if(MTG.n===0 && MTG.downs===0){ MTG.pts=[]; MTG.max=0; MTG.hold=false; MTG.t0=now; }
+  if(now-MTG.t0<=MT_CLUSTER_MS) MTG.downs++;
   MTG.ptrs[e.pointerId]=true; MTG.n++; MTG.max=Math.max(MTG.max,MTG.n);
   if(MTG.n===1){ MTG.pts.push({x:e.clientX,y:e.clientY,t:now});
     if(MTG.holdTo) clearTimeout(MTG.holdTo);
@@ -783,7 +791,11 @@ function mtPtrUp(e){
   var now=performance.now();
   if(MTG.max===1) MTG.pts.push({x:e.clientX,y:e.clientY,t:now}); else if(!MTG.pts.length) MTG.pts.push({x:e.clientX,y:e.clientY,t:now}); else MTG.pts.push({x:e.clientX,y:e.clientY,t:now});
   delete MTG.ptrs[e.pointerId]; MTG.n--;
-  if(MTG.n===0){ if(S.phase==='answer') mtGestEnd(); else { MTG.max=0; MTG.pts=[]; } }
+  if(MTG.n===0){
+    if(S.phase!=='answer'){ MTG.max=0; MTG.downs=0; MTG.pts=[]; return; }
+    if(MTG.max>=2 && (now-MTG.t0)<=MT_CLUSTER_MS){ if(MTG.graceTo) clearTimeout(MTG.graceTo); MTG.graceTo=setTimeout(function(){ MTG.graceTo=0; if(S.phase==='answer' && MTG.n===0 && MTG.pts.length) mtGestEnd(); }, MT_GRACE_MS); }
+    else mtGestEnd();
+  }
 }
 document.addEventListener('pointerup', mtPtrUp, {passive:true});
 document.addEventListener('pointercancel', mtPtrUp, {passive:true});
