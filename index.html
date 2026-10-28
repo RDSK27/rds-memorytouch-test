@@ -360,7 +360,7 @@ if('serviceWorker' in navigator){
           <button class="start-btn rank-btn" ontouchend="event.stopPropagation();" onclick="showRanking()" aria-label="Ranking"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 13.5v7.5M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 4H4v2a3 3 0 0 0 3 3M17 4h3v2a3 3 0 0 1-3 3"/></svg></button>
         </div>
       </div>
-  <div class="app-ver" style="margin-top:6px;padding-top:0;">v6</div>
+  <div class="app-ver" style="margin-top:6px;padding-top:0;">v8</div>
   <div id="user-name-bar" style="margin-top:8px;">
     <div style="display:flex;width:200px;gap:0;margin:0 auto;">
       <input id="user-ini-input" type="text" maxlength="3" placeholder="INI"
@@ -560,7 +560,8 @@ var S={mode:'normal',stim:'a',total:'a',name:'RDS',sport:'',times:[],t0:0,runnin
 /* ---------- MEMORY TOUCH (2026-10-28) ----------
    Memoria de trabajo con GESTOS (en silencio: se puede jugar en grupo). Salen figuras, se quitan y hay que hacer de memoria, EN ORDEN, el gesto de cada una (en cualquier parte de la pantalla).
    NORMAL: biblioteca de 9 figuras (v6: se quito 'tres dedos'), todas del MISMO color (para no condicionar el modo de colores); cada figura sugiere su gesto (flecha = deslizar, anillo = dibujar un circulo...).
-   Ronda 1 = 3 figuras, ronda 2 = 4 NUEVAS, ronda 3 = 5... (no se repite la secuencia anterior). Resultado = GESTOS ACERTADOS en total (3 + 2 si en la ronda 2 aciertas 2 y fallas el 3o = 5);
+   Ronda 1 = 3 figuras, ronda 2 = ESAS 3 + 1 nueva al final, ronda 3 = esas 4 + 1... (v7: la secuencia se repite y crece de uno en uno; en Extremo/Limite cada ronda es una secuencia NUEVA).
+   TIEMPO (v8): NO hay limite para memorizar (v7 tenia exposicion fija): las figuras se quedan hasta que empiezas el 1er gesto (entonces se borran y ese gesto vale como el primero) y el tiempo de memorizar SI cuenta: el reloj total corre mientras memorizas y respondes, y la reaccion del 1er gesto de cada ronda se mide desde que salen las figuras. Es llegar LEJOS Y PRONTO: resultado = aciertos, desempate = tiempo medio por gesto. La cuenta atras de Limite y el tiempo maximo de ronda de Extremo siguen empezando tras el 1er gesto de la ronda. El codigo de colores del inicio (Extremo/Limite) no cuenta tiempo. Resultado = GESTOS ACERTADOS en total (3 + 2 si en la ronda 2 aciertas 2 y fallas el 3o = 5);
    el primer fallo termina la partida. Desempate = reaccion media (tiempo desde el gesto anterior; el 1o desde que se quitan las figuras).
    EXTREMO: biblioteca de 4 COLORES (rojo, azul, verde, amarillo). Al empezar el ejercicio se muestra que gesto va con cada color (arbitrario y distinto en cada ejercicio), se oculta y salen
    secuencias de colores (3, 4, 5... gestos, nuevas en cada ronda). LIMITE: como Extremo pero con el formato de tiempo del Limite de Perception 2: cuenta atras (LIM_START_MS) que solo corre
@@ -569,7 +570,6 @@ var S={mode:'normal',stim:'a',total:'a',name:'RDS',sport:'',times:[],t0:0,runnin
    Gestos: un toque, doble toque, dos dedos, tres dedos, deslizar (4 direcciones), dibujar un circulo, mantener pulsado.
    EXTREMO (v2): el codigo y las figuras se ven sin limite; la fase de respuesta tiene tiempo maximo por ronda (EXT_BASE_MS + EXT_PER_MS por gesto) y si se agota termina la partida con lo acertado. En LIMITE la cuenta atras no baja mientras se muestran codigo o figuras.
    DECISIONES MIAS no confirmadas: tiempos de exposicion, caps de rondas (Normal 12, Extremo 8, Limite 10), cuenta atras 15 s + 1 s por gesto, sin sonidos, reconocimiento de gestos y sus umbrales. */
-var MT_EXPO_BASE=1200, MT_EXPO_PER=500;               /* exposicion de las figuras = base + por*n (ms) */
 var MT_MAXLEN={normal:12, extremo:8, limite:10};      /* rondas: longitud 3..tope (en Limite sigue con el tope hasta que falles o se acabe el tiempo) */
 var LIM_START_MS=15000, LIM_BONUS_MS=1000;
 var EXT_BASE_MS=1500, EXT_PER_MS=1800;   /* v2: Extremo = tiempo maximo POR RONDA para hacer los gestos (base + por gesto); la barra superior se vacia solo en la fase de respuesta. El codigo de colores y las figuras se ven sin limite de tiempo */
@@ -620,7 +620,7 @@ function mtClear(){
 function runGame(){
   mtClear();
   show('game');
-  S.times=[]; S.scores=[]; S.roundPct=[]; S.pts=0; S.pressed=0; S.round=0; S.rounds=0; S.longest=0; S.k=0; S.phase=''; S.running=false; S.lock=true; S.saved=null; S.resEnsayos=0; S.failInfo=null; S.map=null;
+  S.times=[]; S.scores=[]; S.roundPct=[]; S.pts=0; S.pressed=0; S.round=0; S.rounds=0; S.longest=0; S.k=0; S.phase=''; S.running=false; S.lock=true; S.saved=null; S.resEnsayos=0; S.failInfo=null; S.map=null; S.seq=[]; S.elapsed=0; S.clockOn=false;
   S.remain=LIM_START_MS;
   $('stAvgK').textContent='Aciertos'; $('stAvg').textContent='0'; $('stLastK').textContent='Último ms'; $('stLast').textContent='--';
   $('stTrialK').textContent='Ronda'; $('trialCount').textContent='0'; $('stTimeK').textContent=(S.mode==='limite'?'Tiempo':'Tiempo'); $('stTime').textContent=(S.mode==='limite'?(LIM_START_MS/1000).toFixed(1):'0:00.00'); setProgress(S.mode==='limite'?1:0);
@@ -660,16 +660,20 @@ function mtMakeSeq(n){
   for(i=0;i<n;i++){ do{ v=Math.floor(Math.random()*opts); }while(v===prev && opts>1); seq.push(v); prev=v; }   /* sin repetir la misma figura dos veces seguidas (dos toques rapidos se leerian como doble toque) */
   return seq;
 }
+function mtMore(seq,k){ var out=[], prev=seq.length?seq[seq.length-1]:-1, v, opts=(S.mode==='normal')?MT_LIB10.length:4, i; for(i=0;i<k;i++){ do{ v=Math.floor(Math.random()*opts); }while(v===prev && opts>1); out.push(v); prev=v; } return out; }
 function mtGestOf(v){ return S.mode==='normal' ? MT_LIB10[v] : S.map[v]; }
 function nextRound(){
-  S.round++; S.len=mtLenFor(S.round); S.seq=mtMakeSeq(S.len); S.exp=S.seq.map(mtGestOf); S.k=0;
+  S.round++; S.len=mtLenFor(S.round); S.clockOn=false;
+  if(S.mode==='normal' && S.seq.length && S.round>1){ S.seq=S.seq.concat(mtMore(S.seq,S.len-S.seq.length)); }   /* v7: en Normal la secuencia se REPITE y se anade una al final */
+  else S.seq=mtMakeSeq(S.len);
+  S.exp=S.seq.map(mtGestOf); S.k=0;
   $('trialCount').textContent=String(S.round);
   S.phase='show';
   var n=S.len, perRow=n<=6?n:Math.ceil(n/2), sw=($('mtStage').clientWidth||320)-24, size=Math.max(34,Math.min(92,Math.floor(sw/perRow)-12)), h='<div class="mt-seq">';
   S.seq.forEach(function(v,i){ h+='<div class="mt-fig" style="width:'+(size+8)+'px">'+(S.mode==='normal'?figSvg(MT_LIB10[v],size):colSvg(v,size))+'</div>'; if(perRow<n && i===perRow-1) h+='<div class="mt-br"></div>'; });
   h+='</div>';
-  $('mtStage').innerHTML=h; $('mtHint').textContent='Memoriza el orden';
-  S.nextTo=setTimeout(function(){ S.nextTo=0; mtStartAnswer(); }, MT_EXPO_BASE+MT_EXPO_PER*n);
+  $('mtStage').innerHTML=h; $('mtHint').textContent='Memoriza y empieza cuando lo tengas';
+  S.showT=performance.now(); S.last=S.showT;   /* v8: SIN limite para memorizar: las figuras se quedan hasta que empiezas el 1er gesto; ese tiempo SI cuenta (reloj total y reaccion del 1er gesto) */
 }
 function mtStartAnswer(){
   S.phase='answer';
@@ -677,17 +681,20 @@ function mtStartAnswer(){
   for(i=0;i<S.len;i++) h+='<div class="mt-dot" id="mtDot'+i+'"></div>';
   h+='</div></div>';
   $('mtStage').innerHTML=h; $('mtHint').textContent='Haz los gestos en el mismo orden, en cualquier parte';
-  S.refT=performance.now(); S.last=S.refT; S.rStart=S.refT; S.rLimit=EXT_BASE_MS+EXT_PER_MS*S.len; setProgress(S.mode==='limite'?Math.min(1,S.remain/LIM_START_MS):(S.mode==='extremo'?1:0));
+  S.refT=0; S.last=performance.now(); S.rStart=0; S.clockOn=false; S.rLimit=EXT_BASE_MS+EXT_PER_MS*(S.len-1);   /* v7: el tiempo (reloj, cuenta atras, limite de ronda) empieza a correr DESPUES del primer gesto de la ronda */
+  setProgress(S.mode==='limite'?Math.min(1,S.remain/LIM_START_MS):(S.mode==='extremo'?1:0));
 }
 function mtGestOk(g,t){
-  var rt=Math.max(1,Math.round(t-S.refT));
-  S.pts++; S.pressed++; S.times.push(rt); S.refT=t; if(S.mode==='limite') S.remain+=LIM_BONUS_MS;
+  var rt=Math.max(1,Math.round(t-(S.k===0?S.showT:S.refT)));   /* v8: la reaccion del 1er gesto de cada ronda incluye el tiempo de memorizar (desde que salen las figuras) */
+  if(S.k===0){ S.clockOn=true; S.last=performance.now(); S.rStart=t; }   /* el limite (cuenta atras de Limite / tiempo de ronda de Extremo) empieza tras el 1er gesto */
+  S.times.push(rt); S.refT=t;
+  S.pts++; S.pressed++; if(S.mode==='limite') S.remain+=LIM_BONUS_MS;
   var d=$('mtDot'+S.k); if(d){ d.className='mt-dot ok'; d.innerHTML=figSvg(g,22,'#fff'); }
   S.k++;
   $('stAvg').textContent=String(S.pts); $('stLast').textContent=String(rt);
   if(S.mode==='normal') setProgress(S.k/S.len);
   if(S.k>=S.len){
-    S.roundPct.push(100); S.rounds++; S.longest=S.len; S.phase='between';
+    S.roundPct.push(100); S.rounds++; S.longest=S.len; S.phase='between'; S.clockOn=false;
     $('mtHint').textContent='¡Ronda completa!';
     if(S.mode!=='limite' && S.len>=MT_MAXLEN[S.mode]){ S.nextTo=setTimeout(function(){ S.nextTo=0; finishRun('complete'); }, 700); return; }
     S.nextTo=setTimeout(function(){ S.nextTo=0; nextRound(); }, 700);
@@ -710,13 +717,15 @@ function loop(){
   if(!S.running) return;
   var now=performance.now(), dt=now-S.last; S.last=now;
   if(S.mode==='limite'){
-    if(S.phase==='answer'){ S.remain-=dt; }
+    if(S.phase==='show' || S.phase==='answer') S.elapsed+=dt;   /* v8: el tiempo total cuenta mientras memorizas y mientras respondes */
+    if(S.phase==='answer' && S.clockOn) S.remain-=dt;
     if(S.remain<=0){ S.remain=0; $('stTime').textContent='0.0'; setProgress(0);
       if(S.phase==='answer'){ S.roundPct.push(Math.round(100*S.k/S.len)); S.failInfo={round:S.round,k:S.k,exp:S.exp[S.k],got:null,len:S.len}; S.phase='end'; finishRun('time'); return; } }
     else { $('stTime').textContent=(S.remain/1000).toFixed(1); if(S.phase==='answer') setProgress(Math.min(1,S.remain/LIM_START_MS)); }
   } else {
-    $('stTime').textContent=fmtTime(now-S.t0);
-    if(S.mode==='extremo' && S.phase==='answer'){
+    if(S.phase==='show' || S.phase==='answer') S.elapsed+=dt;
+    $('stTime').textContent=fmtTime(S.elapsed);
+    if(S.mode==='extremo' && S.phase==='answer' && S.clockOn){
       var left=S.rLimit-(now-S.rStart);
       if(left<=0){ setProgress(0); S.roundPct.push(Math.round(100*S.k/S.len)); S.failInfo={round:S.round,k:S.k,exp:S.exp[S.k],got:null,len:S.len}; S.phase='end'; finishRun('time'); return; }
       setProgress(left/S.rLimit);
@@ -767,8 +776,10 @@ function mtGestEnd(){
 }
 function mtIgnoreTarget(e){ var t=e.target; return !!(t && t.closest && t.closest('.navbar,button,.results-actions')); }
 document.addEventListener('pointerdown', function(e){
-  var g=$('game'); if(!g || !g.classList.contains('active') || !S.running || S.phase!=='answer') return;
+  var g=$('game'); if(!g || !g.classList.contains('active') || !S.running) return;
   if(mtIgnoreTarget(e)) return;
+  if(S.phase==='show'){ if(S.nextTo){ clearTimeout(S.nextTo); S.nextTo=0; } mtStartAnswer(); }   /* v7: si empiezas el gesto antes de que acabe el tiempo de memorizar, se borran las figuras y empieza la respuesta (ese gesto cuenta como el primero) */
+  if(S.phase!=='answer') return;
   if(e.cancelable) e.preventDefault();
   var now=performance.now();
   if(MTG.graceTo){   /* gesto de varios dedos esperando por si llega otro: si cae dentro de la ventana se une; si no, se cierra ya */
@@ -823,8 +834,8 @@ function renderBars(scores){   /* una barra por ronda: % de gestos acertados en 
 }
 function finishRun(reason){
   S.running=false; S.lock=true; S.phase='end'; mtClear();
-  var total=performance.now()-S.t0, n=S.times.length, sum=0, i; for(i=0;i<n;i++){ sum+=S.times[i]; }
-  var avg=n?sum/n:0;
+  var total=S.elapsed, n=S.times.length, sum=0, i; for(i=0;i<n;i++){ sum+=S.times[i]; }
+  var avg=n?sum/n:9999;   /* sin ninguna reaccion valorada (solo primeros gestos) = peor desempate */
   $('rK1').textContent='Aciertos'; $('rK2').textContent='gestos'; $('rK3').textContent='Reacción media (ms)'; $('rK4').textContent='Secuencia más larga';
   var fi=S.failInfo, msg='';
   if(reason==='wrong' && fi){ msg='Fallo en la ronda '+fi.round+' (gesto '+(fi.k+1)+' de '+fi.len+'): tocaba «'+MT_GESTOS[fi.exp]+'» y has hecho «'+MT_GESTOS[fi.got]+'».'; }
