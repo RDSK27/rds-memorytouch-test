@@ -313,6 +313,7 @@ if('serviceWorker' in navigator){
   .mt-card{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px 6px;border:1.5px solid #dfe3ea;border-radius:10px;padding:8px 4px;}
   .mt-eq{font:700 20px Arial,sans-serif;color:#667;}
   .mt-gn{flex-basis:100%;font:700 11.5px Arial,sans-serif;color:#27344D;}
+  .mt-vars{flex-basis:100%;font:800 13px Arial,sans-serif;color:#667;letter-spacing:.06em;}
   .mt-ok{margin-top:12px;background:var(--rojo);color:#fff;border:0;border-radius:8px;padding:10px 34px;font:800 15px Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;}
 </style>
 </head>
@@ -360,7 +361,7 @@ if('serviceWorker' in navigator){
           <button class="start-btn rank-btn" ontouchend="event.stopPropagation();" onclick="showRanking()" aria-label="Ranking"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 13.5v7.5M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 4H4v2a3 3 0 0 0 3 3M17 4h3v2a3 3 0 0 1-3 3"/></svg></button>
         </div>
       </div>
-  <div class="app-ver" style="margin-top:6px;padding-top:0;">v9</div>
+  <div class="app-ver" style="margin-top:6px;padding-top:0;">v10</div>
   <div id="user-name-bar" style="margin-top:8px;">
     <div style="display:flex;width:200px;gap:0;margin:0 auto;">
       <input id="user-ini-input" type="text" maxlength="3" placeholder="INI"
@@ -558,6 +559,8 @@ var S={mode:'normal',stim:'a',total:'a',name:'RDS',sport:'',times:[],t0:0,runnin
   round:0,len:0,seq:[],exp:[],k:0,phase:'',refT:0,remain:0,last:0,roundPct:[],map:null,failInfo:null,pts:0,rounds:0,longest:0,dpr:1};
 
 /* ---------- MEMORY TOUCH (2026-10-28) ----------
+   v10: CODIGO FIJO en Extremo y Limite: rojo=un toque, azul=doble toque, verde=dos dedos, amarillo=circulo (en CUALQUIER sentido, tambien en Normal). EXTREMO = un color cada vez con limite por estimulo: 5 s y -0,2 s en cada estimulo (suelo EXT_MIN_MS), fallo o tiempo agotado = fin.
+   LIMITE = como v9 (30 s, +1,5 s por acierto sin tope, -5 s por fallo) pero cada color sale con 4 formas: cuadrado de color, cuadrado neutro con una letra (R/H, B/M, V/K, Y/S) o con un numero (1 rojo, 2 azul, 4 verde, 3 amarillo); la leyenda del inicio las muestra todas.
    v9: EXTREMO = empieza con la pantalla de instrucciones (codigo color->gesto) y luego la cuenta atras; secuencias de 1,2,3... colores NUEVAS cada ronda, SIN limite de tiempo; primer fallo termina.
    LIMITE = instrucciones + cuenta atras; luego un color cada vez (un gesto por color); 30 s, +1,5 s por acierto, -5 s por fallo (se puede seguir); acaba al agotarse el tiempo; resultado = aciertos, desempate = reaccion media.
    Memoria de trabajo con GESTOS (en silencio: se puede jugar en grupo). Salen figuras, se quitan y hay que hacer de memoria, EN ORDEN, el gesto de cada una (en cualquier parte de la pantalla).
@@ -573,12 +576,13 @@ var S={mode:'normal',stim:'a',total:'a',name:'RDS',sport:'',times:[],t0:0,runnin
    EXTREMO (v2): el codigo y las figuras se ven sin limite; la fase de respuesta tiene tiempo maximo por ronda (EXT_BASE_MS + EXT_PER_MS por gesto) y si se agota termina la partida con lo acertado. En LIMITE la cuenta atras no baja mientras se muestran codigo o figuras.
    DECISIONES MIAS no confirmadas: tiempos de exposicion, caps de rondas (Normal 12, Extremo 8, Limite 10), cuenta atras 15 s + 1 s por gesto, sin sonidos, reconocimiento de gestos y sus umbrales. */
 var MT_MAXLEN={normal:12, extremo:10, limite:10};      /* rondas: longitud 3..tope (en Limite sigue con el tope hasta que falles o se acabe el tiempo) */
+var EXT_START_MS=5000, EXT_STEP_MS=200, EXT_MIN_MS=1200;   /* v10: Extremo = limite por estimulo que baja 0,2 s cada vez (suelo mio: 1,2 s) */
 var LIM_START_MS=30000, LIM_BONUS_MS=1500, LIM_PENAL_MS=5000;   /* v9: Limite = 30 s, +1,5 s por acierto, -5 s por fallo (se puede seguir) */
 var EXT_BASE_MS=1500, EXT_PER_MS=1800;   /* v2: Extremo = tiempo maximo POR RONDA para hacer los gestos (base + por gesto); la barra superior se vacia solo en la fase de respuesta. El codigo de colores y las figuras se ven sin limite de tiempo */
 /* v3: dos/tres dedos TOLERANTES: los dedos que lleguen dentro de MT_CLUSTER_MS desde el primero cuentan como el mismo gesto aunque los primeros ya se hayan levantado; si al levantarse todos hay 2 o mas dedos, se espera MT_GRACE_MS por si llega otro */
 var MT_CLUSTER_MS=350, MT_GRACE_MS=160;
 var MT_TAP_MOVE=14, MT_TAP_MAX=450, MT_HOLD_MS=550, MT_DTAP_MS=260, MT_DTAP_DIST=60, MT_SWIPE_MIN=40, MT_SWIPE_RATIO=0.72, MT_CIRCLE_MIN=110, MT_CIRCLE_SWEEP=4.4;
-var MT_GESTOS={tap:'un toque',dtap:'doble toque',two:'dos dedos',three:'tres dedos',circle:'dibujar un círculo ↻',circleL:'círculo al revés ↺',hold:'mantener pulsado',up:'deslizar ↑',down:'deslizar ↓',left:'deslizar ←',right:'deslizar →'};
+var MT_GESTOS={tap:'un toque',dtap:'doble toque',two:'dos dedos',three:'tres dedos',circle:'dibujar un círculo',circleL:'círculo al revés',hold:'mantener pulsado',up:'deslizar ↑',down:'deslizar ↓',left:'deslizar ←',right:'deslizar →'};
 var MT_LIB10=['up','down','left','right','tap','dtap','two','circle','hold'];          /* Normal: figura = gesto (v6: 9 figuras, sin 'tres dedos') */
 var MT_POOL4=['tap','dtap','two','up','down','left','right','circle'];                         /* Extremo/Limite: gestos que se pueden asignar a un color */
 var MT_COLS=[['red','Rojo','#D93A3A'],['blue','Azul','#2F6FD6'],['green','Verde','#2A9D5B'],['yellow','Amarillo','#F2B01E']];
@@ -603,6 +607,12 @@ function figSvg(key,size,col){
 }
 function colSvg(ci,size){ var c=MT_COLS[ci][2]; return '<svg viewBox="0 0 64 64" width="'+size+'" height="'+size+'"><rect x="6" y="6" width="52" height="52" rx="11" fill="'+c+'"/></svg>'; }
 
+var MT_VARS=[['R','H','1'],['B','M','2'],['V','K','4'],['Y','S','3']];   /* por color (rojo, azul, verde, amarillo): 2 letras y 1 numero */
+function symSvg(ci,variant,size){   /* variant 0 = cuadrado de color; 1,2 = letra; 3 = numero (cuadrado neutro) */
+  if(!variant) return colSvg(ci,size);
+  var t=MT_VARS[ci][variant-1];
+  return '<svg viewBox="0 0 64 64" width="'+size+'" height="'+size+'"><rect x="6" y="6" width="52" height="52" rx="11" fill="#E6E9F0" stroke="'+MT_INK+'" stroke-width="2.5"/><text x="32" y="46" text-anchor="middle" font-family="Arial" font-size="38" font-weight="800" fill="'+MT_INK+'">'+t+'</text></svg>';
+}
 /* ---------- arranque ---------- */
 function startGame(){ try{ warmRank(selVal('segModo')||'normal', selVal('segEstimulo')||'a', selVal('segEnsayos')||'a'); }catch(e){}
   S.mode=selVal('segModo')||'normal'; S.stim=selVal('segEstimulo')||'a'; S.total=selVal('segEnsayos')||'a';
@@ -625,8 +635,8 @@ function runGame(){
   S.times=[]; S.scores=[]; S.roundPct=[]; S.pts=0; S.pressed=0; S.round=0; S.rounds=0; S.longest=0; S.k=0; S.phase=''; S.running=false; S.lock=true; S.saved=null; S.resEnsayos=0; S.failInfo=null; S.map=null; S.seq=[]; S.elapsed=0; S.clockOn=false;
   S.remain=LIM_START_MS;
   $('stAvgK').textContent='Aciertos'; $('stAvg').textContent='0'; $('stLastK').textContent='Último ms'; $('stLast').textContent='--';
-  $('stTrialK').textContent=(S.mode==='limite'?'Fallos':'Ronda'); $('trialCount').textContent='0'; $('stTimeK').textContent=(S.mode==='limite'?'Tiempo':'Tiempo'); $('stTime').textContent=(S.mode==='limite'?(LIM_START_MS/1000).toFixed(1):'0:00.00'); setProgress(S.mode==='limite'?1:0);
-  S.errs=0; S.limPrev=-1; S.limOn=false;
+  $('stTrialK').textContent=(S.mode==='limite'?'Fallos':(S.mode==='extremo'?'Estímulo':'Ronda')); $('trialCount').textContent='0'; $('stTimeK').textContent=(S.mode==='extremo'?'Límite':'Tiempo'); $('stTime').textContent=(S.mode==='limite'?(LIM_START_MS/1000).toFixed(1):(S.mode==='extremo'?(EXT_START_MS/1000).toFixed(1):'0:00.00')); setProgress(S.mode==='normal'?0:1);
+  S.errs=0; S.limPrev=-1; S.limOn=false; S.extN=0; S.rLimit=EXT_START_MS;
   $('mtStage').innerHTML=''; $('mtHint').textContent='';
   if(S.mode==='normal') mtCountdown(); else { mtMakeMap(); mtLegend(); }   /* v9: Extremo/Limite empiezan con la pantalla de instrucciones y DESPUES viene la cuenta atras */
 }
@@ -641,17 +651,17 @@ function mtCountdown(){
 }
 function beginPlay(){
   S.coverTo=0; S.running=true; S.t0=performance.now(); S.last=S.t0;
-  if(S.mode==='limite'){ S.limOn=true; limNext(); } else { nextRound(); }
+  if(S.mode==='limite'){ S.limOn=true; limNext(); } else if(S.mode==='extremo'){ extNext(); } else { nextRound(); }
   S.raf=requestAnimationFrame(loop);
 }
 
 /* ---------- Extremo/Limite: codigo color -> gesto (nuevo en cada ejercicio) ---------- */
 function mtShuffle(a){ var b=a.slice(), i, j, t; for(i=b.length-1;i>0;i--){ j=Math.floor(Math.random()*(i+1)); t=b[i]; b[i]=b[j]; b[j]=t; } return b; }
-function mtMakeMap(){ S.map=mtShuffle(MT_POOL4).slice(0,4); }   /* S.map[colorIndex] = gesto */
+function mtMakeMap(){ S.map=['tap','dtap','two','circle']; }   /* v10: codigo FIJO, por colores (rojo, azul, verde, amarillo) */   /* S.map[colorIndex] = gesto */
 function mtLegend(){
   S.phase='legend';
   var h='<div class="mt-legend"><div class="mt-lt">Memoriza el código</div><div class="mt-lg">';
-  MT_COLS.forEach(function(c,i){ h+='<div class="mt-card">'+colSvg(i,54)+'<div class="mt-eq">=</div>'+figSvg(S.map[i],54)+'<div class="mt-gn">'+MT_GESTOS[S.map[i]]+'</div></div>'; });
+  MT_COLS.forEach(function(c,i){ h+='<div class="mt-card">'+colSvg(i,54)+'<div class="mt-eq">=</div>'+figSvg(S.map[i],54)+'<div class="mt-gn">'+MT_GESTOS[S.map[i]]+'</div>'+(S.mode==='limite'?'<div class="mt-vars">'+MT_VARS[i].join(' · ')+'</div>':'')+'</div>'; });
   h+='</div><button class="mt-ok" id="mtOk" type="button">Listo</button></div>';
   $('mtStage').innerHTML=h; $('mtHint').textContent='Cuando lo tengas, pulsa Listo. Después se oculta.';
   $('mtOk').addEventListener('click', function(){ if(S.phase!=='legend') return; mtOkGo(); });
@@ -685,7 +695,7 @@ function limNext(){
   var v; do{ v=Math.floor(Math.random()*4); }while(v===S.limPrev); S.limPrev=v;
   S.exp=[S.map[v]]; S.k=0; S.len=1; S.phase='answer';
   var sz=Math.max(90,Math.min(170,($('mtStage').clientWidth||320)-80));
-  $('mtStage').innerHTML='<div class="mt-seq"><div class="mt-fig">'+colSvg(v,sz)+'</div></div>';
+  $('mtStage').innerHTML='<div class="mt-seq"><div class="mt-fig">'+symSvg(v,Math.floor(Math.random()*4),sz)+'</div></div>';
   $('mtHint').textContent='Haz el gesto de este color';
   S.showT=performance.now(); S.last=S.showT;
 }
@@ -697,6 +707,31 @@ function limGesture(g,t){
   if(st){ st.style.borderColor=ok?'#2DBE2D':'#D93A3A'; setTimeout(function(){ if(st) st.style.borderColor=''; },180); }
   if(S.remain<=0) return;   /* lo cierra el bucle */
   limNext();
+}
+/* ---------- Extremo (v10): un color cada vez, limite por estimulo ---------- */
+function extNext(){
+  S.extN++; S.rLimit=Math.max(EXT_MIN_MS,EXT_START_MS-EXT_STEP_MS*(S.extN-1));
+  var v; do{ v=Math.floor(Math.random()*4); }while(v===S.limPrev); S.limPrev=v;
+  S.exp=[S.map[v]]; S.k=0; S.len=1; S.phase='answer';
+  var sz=Math.max(90,Math.min(170,($('mtStage').clientWidth||320)-80));
+  $('mtStage').innerHTML='<div class="mt-seq"><div class="mt-fig">'+colSvg(v,sz)+'</div></div>';
+  $('mtHint').textContent='Haz el gesto de este color';
+  $('trialCount').textContent=String(S.extN);
+  S.showT=performance.now(); S.last=S.showT;
+}
+function extGesture(g,t){
+  var rt=Math.round(t-S.showT), st=$('mtStage');
+  if(rt>S.rLimit){ S.phase='end'; setProgress(0); finishRun('time'); return; }
+  rt=Math.max(1,rt);
+  if(g===S.exp[0]){
+    S.times.push(rt); S.pts++; S.pressed++; $('stAvg').textContent=String(S.pts); $('stLast').textContent=String(rt);
+    if(st){ st.style.borderColor='#2DBE2D'; setTimeout(function(){ if(st) st.style.borderColor=''; },180); }
+    extNext();
+  } else {
+    S.failInfo={round:S.extN,k:0,exp:S.exp[0],got:g,len:1}; S.phase='end'; $('mtHint').textContent='Fallo';
+    if(st) st.style.borderColor='#D93A3A';
+    S.nextTo=setTimeout(function(){ S.nextTo=0; finishRun('wrong'); }, 400);
+  }
 }
 function mtStartAnswer(){
   S.phase='answer';
@@ -733,6 +768,7 @@ function mtGestBad(g,t){
 function onGesture(g,t){
   if(!S.running || S.phase!=='answer') return;
   if(S.mode==='limite'){ limGesture(g,t); return; }
+  if(S.mode==='extremo'){ extGesture(g,t); return; }
   if(g===S.exp[S.k]) mtGestOk(g,t); else mtGestBad(g,t);
 }
 
@@ -744,8 +780,14 @@ function loop(){
     if(S.phase==='answer'){ S.elapsed+=dt; S.remain-=dt; }
     if(S.remain<=0){ S.remain=0; $('stTime').textContent='0.0'; setProgress(0); S.phase='end'; finishRun('time'); return; }
     $('stTime').textContent=(S.remain/1000).toFixed(1); setProgress(Math.min(1,S.remain/LIM_START_MS));
+  } else if(S.mode==='extremo'){
+    if(S.phase==='answer'){
+      S.elapsed+=dt; var left=S.rLimit-(now-S.showT);
+      if(left<=-500){ S.phase='end'; setProgress(0); $('stTime').textContent='0.0'; finishRun('time'); return; }   /* margen: el toque se valida con la hora del gesto, no con la del reconocimiento */
+      $('stTime').textContent=Math.max(0,left/1000).toFixed(1); setProgress(Math.max(0,Math.min(1,left/S.rLimit)));
+    }
   } else {
-    if(S.phase==='show' || S.phase==='answer') S.elapsed+=dt;   /* Normal y Extremo: reloj total, sin limite de tiempo */
+    if(S.phase==='show' || S.phase==='answer') S.elapsed+=dt;   /* Normal: reloj total, sin limite de tiempo */
     $('stTime').textContent=fmtTime(S.elapsed);
   }
   S.raf=requestAnimationFrame(loop);
@@ -772,7 +814,7 @@ function mtClassify(){
     var rv=0; rs.forEach(function(r){ rv+=(r-rm)*(r-rm); }); rv=Math.sqrt(rv/rs.length)/(rm||1);
     var sweep=0, pa=Math.atan2(p[0].y-cy,p[0].x-cx);
     for(i=1;i<p.length;i++){ var ang=Math.atan2(p[i].y-cy,p[i].x-cx), d=ang-pa; while(d>Math.PI) d-=2*Math.PI; while(d<-Math.PI) d+=2*Math.PI; sweep+=d; pa=ang; }
-    if(Math.abs(sweep)>=MT_CIRCLE_SWEEP && rv<0.4 && disp<rm*1.3 && rm>14) return sweep>0 ? 'circle' : 'circleL';   /* v4: en pantalla (y hacia abajo) sweep>0 = sentido de las agujas del reloj */
+    if(Math.abs(sweep)>=MT_CIRCLE_SWEEP && rv<0.4 && disp<rm*1.3 && rm>14) return 'circle';   /* v10: vale en los dos sentidos */   /* v4: en pantalla (y hacia abajo) sweep>0 = sentido de las agujas del reloj */
   }
   if(disp>=MT_SWIPE_MIN && disp/len>=MT_SWIPE_RATIO){
     var dx=b.x-a.x, dy=b.y-a.y;
@@ -856,15 +898,16 @@ function finishRun(reason){
   $('rK1').textContent='Aciertos'; $('rK2').textContent='gestos'; $('rK3').textContent='Reacción media (ms)'; $('rK4').textContent='Secuencia más larga';
   var fi=S.failInfo, msg='';
   if(S.mode==='limite'){ $('rK4').textContent='Fallos'; }
-  if(reason==='wrong' && fi){ msg='Fallo en la ronda '+fi.round+' (gesto '+(fi.k+1)+' de '+fi.len+'): tocaba «'+MT_GESTOS[fi.exp]+'» y has hecho «'+MT_GESTOS[fi.got]+'».'; }
-  else if(reason==='time'){ msg=(S.mode==='limite') ? 'Se acabó el tiempo: '+S.pts+' aciertos y '+S.errs+' fallos.' : 'Se acabó el tiempo en la ronda '+(fi?fi.round:S.round)+'.'; }
+  if(S.mode==='extremo'){ $('rK4').textContent='Límite final (s)'; }
+  if(reason==='wrong' && fi){ msg=(S.mode==='extremo'?'Fallo en el estímulo '+fi.round+': tocaba «':'Fallo en la ronda '+fi.round+' (gesto '+(fi.k+1)+' de '+fi.len+'): tocaba «')+MT_GESTOS[fi.exp]+'» y has hecho «'+MT_GESTOS[fi.got]+'».'; }
+  else if(reason==='time'){ msg=(S.mode==='limite') ? 'Se acabó el tiempo: '+S.pts+' aciertos y '+S.errs+' fallos.' : (S.mode==='extremo' ? 'Se acabó el tiempo en el estímulo '+S.extN+' (límite '+(S.rLimit/1000).toFixed(1)+' s).' : 'Se acabó el tiempo en la ronda '+(fi?fi.round:S.round)+'.'); }
   else if(reason==='complete'){ msg='¡Has completado todas las rondas!'; }
   if(msg){ $('resMsg').textContent=msg; $('resMsg').style.display='block'; } else { $('resMsg').style.display='none'; }
   $('resEns').style.display='none';
   $('rAvg').textContent=String(S.pts);
   $('rTime').textContent=fmtTime(total);
   $('rBest').textContent=String(Math.round(avg));
-  $('rWorst').textContent=String(S.mode==='limite'?S.errs:S.longest);
+  $('rWorst').textContent=String(S.mode==='limite'?S.errs:(S.mode==='extremo'?(S.rLimit/1000).toFixed(1):S.longest));
   S.resAvg=avg; S.resTotal=total; S.resEnsayos=S.pts; S.saved=(S.pts===0) ? null : false;   /* sin ningun acierto no hay nada que guardar */
   S.scores=(S.mode==='limite')?[]:S.roundPct.slice();
   renderBars(S.scores);
