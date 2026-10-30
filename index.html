@@ -298,7 +298,7 @@ if('serviceWorker' in navigator){
   /* ===== Memory Touch ===== */
   #game{touch-action:none;-webkit-user-select:none;user-select:none;}
   .mtw{align-items:stretch;}
-  .mt-stage{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;border:3px solid var(--rojo);border-radius:12px;padding:10px;box-sizing:border-box;text-align:center;}
+  .mt-stage{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;border:0;border-radius:12px;padding:10px;box-sizing:border-box;text-align:center;}
   .mt-seq{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px 4px;max-width:100%;}
   .mt-br{flex-basis:100%;height:0;}
   .mt-fig{display:flex;justify-content:center;}
@@ -367,7 +367,7 @@ if('serviceWorker' in navigator){
           <button class="start-btn rank-btn" ontouchend="event.stopPropagation();" onclick="showRanking()" aria-label="Ranking"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 13.5v7.5M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 4H4v2a3 3 0 0 0 3 3M17 4h3v2a3 3 0 0 1-3 3"/></svg></button>
         </div>
       </div>
-  <div class="app-ver" style="margin-top:6px;padding-top:0;">v16</div>
+  <div class="app-ver" style="margin-top:6px;padding-top:0;">v17</div>
   <div id="user-name-bar" style="margin-top:8px;">
     <div style="display:flex;width:200px;gap:0;margin:0 auto;">
       <input id="user-ini-input" type="text" maxlength="3" placeholder="INI"
@@ -565,6 +565,7 @@ var S={mode:'normal',stim:'a',total:'a',name:'RDS',sport:'',times:[],t0:0,runnin
   round:0,len:0,seq:[],exp:[],k:0,phase:'',refT:0,remain:0,last:0,roundPct:[],map:null,failInfo:null,pts:0,rounds:0,longest:0,dpr:1};
 
 /* ---------- MEMORY TOUCH (2026-10-28) ----------
+   v17: SIN circulo en Normal ni en Extremo (Limite lo conserva: amarillo); Extremo tampoco usa 'mantener' (MT_LIBX, 7 gestos). REJILLA 4x4 en TODOS los modos (sin borde rojo). NORMAL: la secuencia sale en las celdas EN ORDEN (1a celda, 2a, 3a...; ronda siguiente = las mismas + la siguiente celda), al empezar el 1er gesto se borran y cada gesto acertado se muestra en SU celda; tope 16 (rejilla llena) y entonces se pasa a resultados. LIMITE: el color sale en una celda al azar de la rejilla.
    v15 (PRUEBA): EXTREMO = rejilla 4x4 (X_GRID). En una celda libre al azar sale una figura de Normal, se ve X_SHOW_MS y se da la vuelta (queda una carta boca abajo). Hay que hacer los gestos EN ORDEN DE APARICION (cola), en cualquier parte de la pantalla; acertar quita la carta mas antigua.
    v16: salen POR TANDAS (de una en una, luego de dos en dos, de tres en tres...) y se acumulan: se pierde al fallar un gesto o al llenarse la rejilla. Resultado = gestos acertados; desempate = reaccion media (desde que el gesto es 'el que toca': max(aparicion de la carta, gesto anterior)). Sin colores ni leyenda.
    v13: Extremo sin suelo (el limite baja 0,2 s por estimulo hasta cero) y Limite con cuenta atras que acelera (ritmo 1 + t/LIM_ACCEL_S).
@@ -584,7 +585,7 @@ var S={mode:'normal',stim:'a',total:'a',name:'RDS',sport:'',times:[],t0:0,runnin
    Gestos: un toque, doble toque, dos dedos, tres dedos, deslizar (4 direcciones), dibujar un circulo, mantener pulsado.
    EXTREMO (v2): el codigo y las figuras se ven sin limite; la fase de respuesta tiene tiempo maximo por ronda (EXT_BASE_MS + EXT_PER_MS por gesto) y si se agota termina la partida con lo acertado. En LIMITE la cuenta atras no baja mientras se muestran codigo o figuras.
    DECISIONES MIAS no confirmadas: tiempos de exposicion, caps de rondas (Normal 12, Extremo 8, Limite 10), cuenta atras 15 s + 1 s por gesto, sin sonidos, reconocimiento de gestos y sus umbrales. */
-var MT_MAXLEN={normal:12, extremo:10, limite:10};      /* rondas: longitud 3..tope (en Limite sigue con el tope hasta que falles o se acabe el tiempo) */
+var MT_MAXLEN={normal:16, extremo:10, limite:10};      /* rondas: longitud 3..tope (en Limite sigue con el tope hasta que falles o se acabe el tiempo) */
 var EXT_START_MS=5000, EXT_STEP_MS=200;   /* v13: Extremo = limite por estimulo que baja 0,2 s cada vez, SIN suelo: llega a cero (a los 25 estimulos la partida se da por completada) */
 var X_GRID=4, X_SHOW_MS=850;   /* v15: Extremo en rejilla */
 var X_PHASE_SYMS=5, X_INTRA_MS=300, X_BASE_MS=1300, X_STEP_MS=500;   /* v16: tandas: fase k = tandas de k simbolos hasta sumar ~X_PHASE_SYMS (1: 5 tandas de 1; 2: 3 de 2; 3: 2 de 3...); lapso X_INTRA_MS entre los de una tanda; tiempo entre tandas = X_BASE_MS + X_STEP_MS*(k-1) */
@@ -596,7 +597,8 @@ var MT_CLUSTER_MS=350, MT_GRACE_MS=160;
 /* v14: gestos mas tolerantes: toque hasta 20 px de movimiento, doble toque 380 ms entre levantadas (antes 260) y 90 px, circulo desde 3,4 rad (~195 grados, antes 252) con centro AJUSTADO por minimos cuadrados (antes: centroide, que falla con arcos incompletos) y sin exigir cerrar el circulo */
 var MT_TAP_MOVE=20, MT_TAP_MAX=450, MT_HOLD_MS=550, MT_DTAP_MS=380, MT_DTAP_DIST=90, MT_SWIPE_MIN=40, MT_SWIPE_RATIO=0.72, MT_CIRCLE_MIN=90, MT_CIRCLE_SWEEP=3.4;
 var MT_GESTOS={tap:'un toque',dtap:'doble toque',two:'dos dedos',three:'tres dedos',circle:'dibujar un círculo',circleL:'círculo al revés',hold:'mantener pulsado',up:'deslizar ↑',down:'deslizar ↓',left:'deslizar ←',right:'deslizar →'};
-var MT_LIB10=['up','down','left','right','tap','dtap','two','circle','hold'];          /* Normal: figura = gesto (v6: 9 figuras, sin 'tres dedos') */
+var MT_LIBX=['up','down','left','right','tap','dtap','two'];   /* v17: Extremo (7 gestos: sin circulo ni mantener) */
+var MT_LIB10=['up','down','left','right','tap','dtap','two','hold'];   /* v17: Normal (8 gestos: sin circulo) */          /* Normal: figura = gesto (v6: 9 figuras, sin 'tres dedos') */
 var MT_POOL4=['tap','dtap','two','up','down','left','right','circle'];                         /* Extremo/Limite: gestos que se pueden asignar a un color */
 var MT_COLS=[['red','Rojo','#D93A3A'],['blue','Azul','#2F6FD6'],['green','Verde','#2A9D5B'],['yellow','Amarillo','#F2B01E']];
 var MT_INK='#27344D';
@@ -626,6 +628,13 @@ function symSvg(ci,variant,size){   /* variant 0 = cuadrado de color; 1,2 = letr
   var t=MT_VARS[ci][variant-1];
   return '<svg viewBox="0 0 64 64" width="'+size+'" height="'+size+'"><rect x="6" y="6" width="52" height="52" rx="11" fill="#E6E9F0" stroke="'+MT_INK+'" stroke-width="2.5"/><text x="32" y="46" text-anchor="middle" font-family="Arial" font-size="38" font-weight="800" fill="'+MT_INK+'">'+t+'</text></svg>';
 }
+function mtGridMake(){
+  var st=$('mtStage'), side=Math.max(120,Math.min((st.clientWidth||320),(st.clientHeight||320))-24), h='<div class="mt-grid" style="width:'+side+'px;height:'+side+'px">', n;
+  for(n=0;n<X_GRID*X_GRID;n++) h+='<div class="mt-cell" id="mtC'+n+'"></div>';
+  st.innerHTML=h+'</div>'; S.xSide=side;
+}
+function mtCellSize(){ return Math.floor(S.xSide/X_GRID)-14; }
+function mtMark(k,g,ok){ var c=$('mtC'+k); if(!c) return; c.style.background=ok?'#d6f0d6':'#f7d0d0'; c.style.borderColor=ok?'#5cb85c':'#D93A3A'; c.innerHTML=figSvg(g,mtCellSize(),ok?'#1f6b3a':'#a32020'); }
 /* ---------- arranque ---------- */
 function startGame(){ try{ warmRank(selVal('segModo')||'normal', selVal('segEstimulo')||'a', selVal('segEnsayos')||'a'); }catch(e){}
   S.mode=selVal('segModo')||'normal'; S.stim=selVal('segEstimulo')||'a'; S.total=selVal('segEnsayos')||'a';
@@ -698,18 +707,18 @@ function nextRound(){
   S.exp=S.seq.map(mtGestOf); S.k=0;
   $('trialCount').textContent=String(S.round);
   S.phase='show';
-  var n=S.len, perRow=n<=6?n:Math.ceil(n/2), sw=($('mtStage').clientWidth||320)-24, size=Math.max(34,Math.min(92,Math.floor(sw/perRow)-12)), h='<div class="mt-seq">';
-  S.seq.forEach(function(v,i){ h+='<div class="mt-fig" style="width:'+(size+8)+'px">'+(S.mode==='normal'?figSvg(MT_LIB10[v],size):colSvg(v,size))+'</div>'; if(perRow<n && i===perRow-1) h+='<div class="mt-br"></div>'; });
-  h+='</div>';
-  $('mtStage').innerHTML=h; $('mtHint').textContent='Memoriza y empieza cuando lo tengas';
+  mtGridMake(); S.seq.forEach(function(v,i){ var c=$('mtC'+i); if(c) c.innerHTML=figSvg(MT_LIB10[v],mtCellSize()); });
+  $('mtHint').textContent='Memoriza y empieza cuando lo tengas';
   S.showT=performance.now(); S.last=S.showT;   /* v8: SIN limite para memorizar: las figuras se quedan hasta que empiezas el 1er gesto; ese tiempo SI cuenta (reloj total y reaccion del 1er gesto) */
 }
 /* ---------- Limite (v9): un color cada vez, un gesto por color ---------- */
 function limNext(){
   var v; do{ v=Math.floor(Math.random()*4); }while(v===S.limPrev); S.limPrev=v;
   S.exp=[S.map[v]]; S.k=0; S.len=1; S.phase='answer';
-  var sz=Math.max(90,Math.min(170,($('mtStage').clientWidth||320)-80));
-  $('mtStage').innerHTML='<div class="mt-seq"><div class="mt-fig">'+symSvg(v,Math.floor(Math.random()*4),sz)+'</div></div>';
+  if(!$('mtC0')) mtGridMake();
+  var cell; do{ cell=Math.floor(Math.random()*X_GRID*X_GRID); }while(cell===S.limCell);
+  var old=$('mtC'+S.limCell); if(old) old.innerHTML=''; S.limCell=cell;
+  $('mtC'+cell).innerHTML=symSvg(v,Math.floor(Math.random()*4),mtCellSize());
   $('mtHint').textContent='Haz el gesto de este color';
   S.showT=performance.now(); S.last=S.showT;
 }
@@ -718,7 +727,7 @@ function limGesture(g,t){
   if(ok){ S.times.push(rt); S.pts++; S.pressed++; S.remain+=LIM_BONUS_MS; $('stLast').textContent=String(rt); }
   else { S.errs++; S.remain-=LIM_PENAL_MS; $('stLast').textContent='−5 s'; }
   $('stAvg').textContent=String(S.pts); $('trialCount').textContent=String(S.errs);
-  if(st){ st.style.borderColor=ok?'#2DBE2D':'#D93A3A'; setTimeout(function(){ if(st) st.style.borderColor=''; },180); }
+  if(st){ st.style.background=ok?'#e3f6e3':'#fbe1e1'; setTimeout(function(){ if(st) st.style.background=''; },180); }
   if(S.remain<=0) return;   /* lo cierra el bucle */
   limNext();
 }
@@ -727,9 +736,7 @@ function xT(fn,ms){ var id=setTimeout(fn,ms); (S.xTimers||(S.xTimers=[])).push(i
 var X_BACK='<svg viewBox="0 0 64 64" width="100%" height="100%"><rect x="6" y="6" width="52" height="52" rx="9" fill="#27344D"/><rect x="14" y="14" width="36" height="36" rx="5" fill="none" stroke="#5b6b8a" stroke-width="3"/><circle cx="32" cy="32" r="6" fill="#5b6b8a"/></svg>';
 function xStart(){
   S.q=[]; S.xTimers=[]; S.xk=1; S.xBN=0; S.maxQ=0; S.xId=0; S.xLast=-1; S.phase='answer'; S.refT=performance.now(); S.last=S.refT;
-  var st=$('mtStage'), side=Math.max(120,Math.min((st.clientWidth||320),(st.clientHeight||320))-24), h='<div class="mt-grid" style="width:'+side+'px;height:'+side+'px">', n;
-  for(n=0;n<X_GRID*X_GRID;n++) h+='<div class="mt-cell" id="mtC'+n+'"></div>';
-  st.innerHTML=h+'</div>'; S.xSide=side;
+  mtGridMake();
   $('mtHint').textContent='Haz los gestos en el orden en que salieron';
   xT(xBatch,500);
 }
@@ -744,8 +751,8 @@ function xPlace(){
   if(S.phase!=='answer') return;
   var free=[], n; for(n=0;n<X_GRID*X_GRID;n++){ var used=false; S.q.forEach(function(c){ if(c.cell===n) used=true; }); if(!used) free.push(n); }
   if(!free.length){ S.phase='end'; finishRun('full'); return; }
-  var cell=free[Math.floor(Math.random()*free.length)], gi; do{ gi=Math.floor(Math.random()*MT_LIB10.length); }while(gi===S.xLast && MT_LIB10.length>1); S.xLast=gi;
-  var c={id:++S.xId, cell:cell, g:MT_LIB10[gi], t:performance.now()}; S.q.push(c);
+  var cell=free[Math.floor(Math.random()*free.length)], gi; do{ gi=Math.floor(Math.random()*MT_LIBX.length); }while(gi===S.xLast && MT_LIBX.length>1); S.xLast=gi;
+  var c={id:++S.xId, cell:cell, g:MT_LIBX[gi], t:performance.now()}; S.q.push(c);
   if(S.q.length>S.maxQ) S.maxQ=S.q.length;
   var el=$('mtC'+cell), size=Math.floor(S.xSide/X_GRID)-14;
   el.innerHTML='<div class="mt-cd" id="mtK'+c.id+'">'+figSvg(c.g,size)+'</div>';
@@ -768,10 +775,7 @@ function extGesture(g,t){
 }
 function mtStartAnswer(){
   S.phase='answer';
-  var h='<div class="mt-ans"><div class="mt-dots">', i;
-  for(i=0;i<S.len;i++) h+='<div class="mt-dot" id="mtDot'+i+'"></div>';
-  h+='</div></div>';
-  $('mtStage').innerHTML=h; $('mtHint').textContent='Haz los gestos en el mismo orden, en cualquier parte';
+  mtGridMake(); $('mtHint').textContent='Haz los gestos en el mismo orden, en cualquier parte';
   S.refT=0; S.last=performance.now(); S.rStart=0; S.clockOn=false;   /* v7: el tiempo (reloj, cuenta atras, limite de ronda) empieza a correr DESPUES del primer gesto de la ronda */
   setProgress(0);
 }
@@ -780,7 +784,7 @@ function mtGestOk(g,t){
   if(S.k===0){ S.clockOn=true; S.last=performance.now(); S.rStart=t; }   /* el limite (cuenta atras de Limite / tiempo de ronda de Extremo) empieza tras el 1er gesto */
   S.times.push(rt); S.refT=t;
   S.pts++; S.pressed++; if(S.mode==='limite') S.remain+=LIM_BONUS_MS;
-  var d=$('mtDot'+S.k); if(d){ d.className='mt-dot ok'; d.innerHTML=figSvg(g,22,'#fff'); }
+  mtMark(S.k,g,true);
   S.k++;
   $('stAvg').textContent=String(S.pts); $('stLast').textContent=String(rt);
   setProgress(S.k/S.len);
@@ -792,7 +796,7 @@ function mtGestOk(g,t){
   }
 }
 function mtGestBad(g,t){
-  var d=$('mtDot'+S.k); if(d){ d.className='mt-dot bad'; d.innerHTML=figSvg(g,22,'#fff'); }
+  mtMark(S.k,g,false);
   S.roundPct.push(Math.round(100*S.k/S.len));
   S.failInfo={round:S.round, k:S.k, exp:S.exp[S.k], got:g, len:S.len};
   S.phase='end'; $('mtHint').textContent='Fallo';
