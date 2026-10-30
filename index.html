@@ -363,7 +363,7 @@ if('serviceWorker' in navigator){
           <button class="start-btn rank-btn" ontouchend="event.stopPropagation();" onclick="showRanking()" aria-label="Ranking"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 13.5v7.5M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 4H4v2a3 3 0 0 0 3 3M17 4h3v2a3 3 0 0 1-3 3"/></svg></button>
         </div>
       </div>
-  <div class="app-ver" style="margin-top:6px;padding-top:0;">v13</div>
+  <div class="app-ver" style="margin-top:6px;padding-top:0;">v14</div>
   <div id="user-name-bar" style="margin-top:8px;">
     <div style="display:flex;width:200px;gap:0;margin:0 auto;">
       <input id="user-ini-input" type="text" maxlength="3" placeholder="INI"
@@ -585,7 +585,8 @@ var LIM_START_MS=30000, LIM_BONUS_MS=1500, LIM_PENAL_MS=5000;   /* v9: Limite = 
 var EXT_BASE_MS=1500, EXT_PER_MS=1800;   /* v2: Extremo = tiempo maximo POR RONDA para hacer los gestos (base + por gesto); la barra superior se vacia solo en la fase de respuesta. El codigo de colores y las figuras se ven sin limite de tiempo */
 /* v3: dos/tres dedos TOLERANTES: los dedos que lleguen dentro de MT_CLUSTER_MS desde el primero cuentan como el mismo gesto aunque los primeros ya se hayan levantado; si al levantarse todos hay 2 o mas dedos, se espera MT_GRACE_MS por si llega otro */
 var MT_CLUSTER_MS=350, MT_GRACE_MS=160;
-var MT_TAP_MOVE=14, MT_TAP_MAX=450, MT_HOLD_MS=550, MT_DTAP_MS=260, MT_DTAP_DIST=60, MT_SWIPE_MIN=40, MT_SWIPE_RATIO=0.72, MT_CIRCLE_MIN=110, MT_CIRCLE_SWEEP=4.4;
+/* v14: gestos mas tolerantes: toque hasta 20 px de movimiento, doble toque 380 ms entre levantadas (antes 260) y 90 px, circulo desde 3,4 rad (~195 grados, antes 252) con centro AJUSTADO por minimos cuadrados (antes: centroide, que falla con arcos incompletos) y sin exigir cerrar el circulo */
+var MT_TAP_MOVE=20, MT_TAP_MAX=450, MT_HOLD_MS=550, MT_DTAP_MS=380, MT_DTAP_DIST=90, MT_SWIPE_MIN=40, MT_SWIPE_RATIO=0.72, MT_CIRCLE_MIN=90, MT_CIRCLE_SWEEP=3.4;
 var MT_GESTOS={tap:'un toque',dtap:'doble toque',two:'dos dedos',three:'tres dedos',circle:'dibujar un círculo',circleL:'círculo al revés',hold:'mantener pulsado',up:'deslizar ↑',down:'deslizar ↓',left:'deslizar ←',right:'deslizar →'};
 var MT_LIB10=['up','down','left','right','tap','dtap','two','circle','hold'];          /* Normal: figura = gesto (v6: 9 figuras, sin 'tres dedos') */
 var MT_POOL4=['tap','dtap','two','up','down','left','right','circle'];                         /* Extremo/Limite: gestos que se pueden asignar a un color */
@@ -788,7 +789,7 @@ function loop(){
   } else if(S.mode==='extremo'){
     if(S.phase==='answer'){
       S.elapsed+=dt; var left=S.rLimit-(now-S.showT);
-      if(left<=-500){ S.phase='end'; setProgress(0); $('stTime').textContent='0.0'; finishRun('time'); return; }   /* margen: el toque se valida con la hora del gesto, no con la del reconocimiento */
+      if(left<=-800){ S.phase='end'; setProgress(0); $('stTime').textContent='0.0'; finishRun('time'); return; }   /* margen: el toque se valida con la hora del gesto, no con la del reconocimiento */
       $('stTime').textContent=Math.max(0,left/1000).toFixed(1); setProgress(Math.max(0,Math.min(1,left/S.rLimit)));
     }
   } else {
@@ -812,14 +813,18 @@ function mtClassify(){
   if(fingers===2) return 'two';
   if(MTG.hold) return 'hold';
   for(i=1;i<p.length;i++) len+=mtDist(p[i],p[i-1]);
-  if(len<MT_TAP_MOVE) return 'tap';
+  var maxd=0; for(i=1;i<p.length;i++){ var dd=mtDist(p[i],a); if(dd>maxd) maxd=dd; }
+  if(maxd<MT_TAP_MOVE) return 'tap';   /* v14: toque = el dedo no se aleja mas de MT_TAP_MOVE del punto de apoyo (antes: recorrido total) */
   if(len>=MT_CIRCLE_MIN){
-    var cx=0, cy=0; p.forEach(function(q){ cx+=q.x; cy+=q.y; }); cx/=p.length; cy/=p.length;
+    var nn=p.length, sx=0, sy=0, cx, cy; p.forEach(function(q){ sx+=q.x; sy+=q.y; }); var mx=sx/nn, my=sy/nn, suu=0, suv=0, svv=0, suuu=0, svvv=0, suvv=0, svuu=0;
+    p.forEach(function(q){ var u=q.x-mx, v=q.y-my; suu+=u*u; suv+=u*v; svv+=v*v; suuu+=u*u*u; svvv+=v*v*v; suvv+=u*v*v; svuu+=v*u*u; });
+    var det=suu*svv-suv*suv; cx=mx; cy=my;
+    if(Math.abs(det)>1e-6){ cx=mx+(svv*(suuu+suvv)-suv*(svvv+svuu))/(2*det); cy=my+(suu*(svvv+svuu)-suv*(suuu+suvv))/(2*det); }   /* centro por ajuste de circulo (Kasa) */
     var rs=p.map(function(q){ return mtDist(q,{x:cx,y:cy}); }), rm=0; rs.forEach(function(r){ rm+=r; }); rm/=rs.length;
     var rv=0; rs.forEach(function(r){ rv+=(r-rm)*(r-rm); }); rv=Math.sqrt(rv/rs.length)/(rm||1);
     var sweep=0, pa=Math.atan2(p[0].y-cy,p[0].x-cx);
     for(i=1;i<p.length;i++){ var ang=Math.atan2(p[i].y-cy,p[i].x-cx), d=ang-pa; while(d>Math.PI) d-=2*Math.PI; while(d<-Math.PI) d+=2*Math.PI; sweep+=d; pa=ang; }
-    if(Math.abs(sweep)>=MT_CIRCLE_SWEEP && rv<0.4 && disp<rm*1.3 && rm>14) return 'circle';   /* v10: vale en los dos sentidos */   /* v4: en pantalla (y hacia abajo) sweep>0 = sentido de las agujas del reloj */
+    if(Math.abs(sweep)>=MT_CIRCLE_SWEEP && rv<0.4 && rm>12) return 'circle';   /* vale en los dos sentidos */   /* v4: en pantalla (y hacia abajo) sweep>0 = sentido de las agujas del reloj */
   }
   if(disp>=MT_SWIPE_MIN && disp/len>=MT_SWIPE_RATIO){
     var dx=b.x-a.x, dy=b.y-a.y;
@@ -855,7 +860,7 @@ document.addEventListener('pointerdown', function(e){
   MTG.ptrs[e.pointerId]=true; MTG.n++; MTG.max=Math.max(MTG.max,MTG.n);
   if(MTG.n===1){ MTG.pts.push({x:e.clientX,y:e.clientY,t:now});
     if(MTG.holdTo) clearTimeout(MTG.holdTo);
-    MTG.holdTo=setTimeout(function(){ MTG.holdTo=0; if(MTG.n===1 && MTG.max===1){ var q=MTG.pts, len=0, i; for(i=1;i<q.length;i++) len+=mtDist(q[i],q[i-1]); if(len<MT_TAP_MOVE){ MTG.hold=true; MTG.holdT=performance.now(); var h=$('mtHint'); if(h) h.textContent='Mantenido ✓ (suelta)'; } } }, MT_HOLD_MS);
+    MTG.holdTo=setTimeout(function(){ MTG.holdTo=0; if(MTG.n===1 && MTG.max===1){ var q=MTG.pts, len=0, i; for(i=1;i<q.length;i++){ var d0=mtDist(q[i],q[0]); if(d0>len) len=d0; } if(len<MT_TAP_MOVE){ MTG.hold=true; MTG.holdT=performance.now(); var h=$('mtHint'); if(h) h.textContent='Mantenido ✓ (suelta)'; } } }, MT_HOLD_MS);
   }
 }, {passive:false});
 document.addEventListener('pointermove', function(e){
