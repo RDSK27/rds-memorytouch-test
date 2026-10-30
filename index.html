@@ -367,7 +367,7 @@ if('serviceWorker' in navigator){
           <button class="start-btn rank-btn" ontouchend="event.stopPropagation();" onclick="showRanking()" aria-label="Ranking"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 13.5v7.5M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 4H4v2a3 3 0 0 0 3 3M17 4h3v2a3 3 0 0 1-3 3"/></svg></button>
         </div>
       </div>
-  <div class="app-ver" style="margin-top:6px;padding-top:0;">v17</div>
+  <div class="app-ver" style="margin-top:6px;padding-top:0;">v18</div>
   <div id="user-name-bar" style="margin-top:8px;">
     <div style="display:flex;width:200px;gap:0;margin:0 auto;">
       <input id="user-ini-input" type="text" maxlength="3" placeholder="INI"
@@ -565,6 +565,7 @@ var S={mode:'normal',stim:'a',total:'a',name:'RDS',sport:'',times:[],t0:0,runnin
   round:0,len:0,seq:[],exp:[],k:0,phase:'',refT:0,remain:0,last:0,roundPct:[],map:null,failInfo:null,pts:0,rounds:0,longest:0,dpr:1};
 
 /* ---------- MEMORY TOUCH (2026-10-28) ----------
+   v18: LIMITE = colores que salen en celdas al azar de la rejilla y SE ACUMULAN; no hace falta seguir el orden. Codigo fijo: rojo=un toque, azul=dos dedos, verde=deslizar abajo, amarillo=deslizar arriba. El gesto se hace SOBRE la casilla (el punto de inicio del gesto, o el centro de los dedos, cae en su celda). Gesto correcto = la casilla desaparece (+LIM_BONUS_MS); gesto equivocado sobre una casilla = fallo (-LIM_PENAL_MS) y la casilla sigue; fuera de una casilla ocupada se ignora. Salen cada L_SPAWN_MS (x L_FACTOR cada vez, suelo L_MIN_MS); acaba al agotarse el tiempo (cuenta atras como v13) o al llenarse la rejilla. Sin letras ni numeros por ahora.
    v17: SIN circulo en Normal ni en Extremo (Limite lo conserva: amarillo); Extremo tampoco usa 'mantener' (MT_LIBX, 7 gestos). REJILLA 4x4 en TODOS los modos (sin borde rojo). NORMAL: la secuencia sale en las celdas EN ORDEN (1a celda, 2a, 3a...; ronda siguiente = las mismas + la siguiente celda), al empezar el 1er gesto se borran y cada gesto acertado se muestra en SU celda; tope 16 (rejilla llena) y entonces se pasa a resultados. LIMITE: el color sale en una celda al azar de la rejilla.
    v15 (PRUEBA): EXTREMO = rejilla 4x4 (X_GRID). En una celda libre al azar sale una figura de Normal, se ve X_SHOW_MS y se da la vuelta (queda una carta boca abajo). Hay que hacer los gestos EN ORDEN DE APARICION (cola), en cualquier parte de la pantalla; acertar quita la carta mas antigua.
    v16: salen POR TANDAS (de una en una, luego de dos en dos, de tres en tres...) y se acumulan: se pierde al fallar un gesto o al llenarse la rejilla. Resultado = gestos acertados; desempate = reaccion media (desde que el gesto es 'el que toca': max(aparicion de la carta, gesto anterior)). Sin colores ni leyenda.
@@ -589,7 +590,8 @@ var MT_MAXLEN={normal:16, extremo:10, limite:10};      /* rondas: longitud 3..to
 var EXT_START_MS=5000, EXT_STEP_MS=200;   /* v13: Extremo = limite por estimulo que baja 0,2 s cada vez, SIN suelo: llega a cero (a los 25 estimulos la partida se da por completada) */
 var X_GRID=4, X_SHOW_MS=850;   /* v15: Extremo en rejilla */
 var X_PHASE_SYMS=5, X_INTRA_MS=300, X_BASE_MS=1300, X_STEP_MS=500;   /* v16: tandas: fase k = tandas de k simbolos hasta sumar ~X_PHASE_SYMS (1: 5 tandas de 1; 2: 3 de 2; 3: 2 de 3...); lapso X_INTRA_MS entre los de una tanda; tiempo entre tandas = X_BASE_MS + X_STEP_MS*(k-1) */
-var LIM_ACCEL_S=40;   /* v13: Limite = la cuenta atras gasta tiempo cada vez mas rapido: ritmo = 1 + segundos jugados / LIM_ACCEL_S (x2 a los 40 s, x3 a los 80 s...) */
+var LIM_ACCEL_S=40;
+var L_SPAWN_MS=1800, L_FACTOR=0.97, L_MIN_MS=500, L_HIT_MARGIN=8;   /* v18: Limite acumulativo (decisiones mias) */   /* v13: Limite = la cuenta atras gasta tiempo cada vez mas rapido: ritmo = 1 + segundos jugados / LIM_ACCEL_S (x2 a los 40 s, x3 a los 80 s...) */
 var LIM_START_MS=30000, LIM_BONUS_MS=1500, LIM_PENAL_MS=5000;   /* v9: Limite = 30 s, +1,5 s por acierto, -5 s por fallo (se puede seguir) */
 var EXT_BASE_MS=1500, EXT_PER_MS=1800;   /* v2: Extremo = tiempo maximo POR RONDA para hacer los gestos (base + por gesto); la barra superior se vacia solo en la fase de respuesta. El codigo de colores y las figuras se ven sin limite de tiempo */
 /* v3: dos/tres dedos TOLERANTES: los dedos que lleguen dentro de MT_CLUSTER_MS desde el primero cuentan como el mismo gesto aunque los primeros ya se hayan levantado; si al levantarse todos hay 2 o mas dedos, se espera MT_GRACE_MS por si llega otro */
@@ -674,19 +676,19 @@ function mtCountdown(){
 }
 function beginPlay(){
   S.coverTo=0; S.running=true; S.t0=performance.now(); S.last=S.t0;
-  if(S.mode==='limite'){ S.limOn=true; limNext(); } else if(S.mode==='extremo'){ xStart(); } else { nextRound(); }
+  if(S.mode==='limite'){ S.limOn=true; limStart(); } else if(S.mode==='extremo'){ xStart(); } else { nextRound(); }
   S.raf=requestAnimationFrame(loop);
 }
 
 /* ---------- Extremo/Limite: codigo color -> gesto (nuevo en cada ejercicio) ---------- */
 function mtShuffle(a){ var b=a.slice(), i, j, t; for(i=b.length-1;i>0;i--){ j=Math.floor(Math.random()*(i+1)); t=b[i]; b[i]=b[j]; b[j]=t; } return b; }
-function mtMakeMap(){ S.map=['tap','dtap','two','circle']; }   /* v10: codigo FIJO, por colores (rojo, azul, verde, amarillo) */   /* S.map[colorIndex] = gesto */
+function mtMakeMap(){ S.map=['tap','two','down','up']; }   /* v18: rojo, azul, verde, amarillo */   /* v10: codigo FIJO, por colores (rojo, azul, verde, amarillo) */   /* S.map[colorIndex] = gesto */
 function mtLegend(){
   S.phase='legend';
   var h='<div class="mt-legend"><div class="mt-lt">Memoriza el código</div><div class="mt-lg">';
-  [0,1,3,2].forEach(function(i){ h+='<div class="mt-card">'+colSvg(i,54)+'<div class="mt-eq">=</div>'+figSvg(S.map[i],54)+'<div class="mt-gn">'+MT_GESTOS[S.map[i]]+'</div>'+(S.mode==='limite'?'<div class="mt-vars">'+MT_VARS[i].join(' · ')+'</div>':'')+'</div>'; });
+  [0,1,3,2].forEach(function(i){ h+='<div class="mt-card">'+colSvg(i,54)+'<div class="mt-eq">=</div>'+figSvg(S.map[i],54)+'<div class="mt-gn">'+MT_GESTOS[S.map[i]]+'</div>'+'</div>'; });
   h+='</div><button class="mt-ok" id="mtOk" type="button">Listo</button></div>';
-  $('mtStage').innerHTML=h; $('mtHint').textContent='Cuando lo tengas, pulsa Listo. Después se oculta.';
+  $('mtStage').innerHTML=h; $('mtHint').textContent='Los gestos se hacen sobre la casilla. Cuando lo tengas, pulsa Listo.';
   $('mtOk').addEventListener('click', function(){ if(S.phase!=='legend') return; mtOkGo(); });
 }
 function mtOkGo(){ S.phase='wait'; $('mtStage').innerHTML=''; $('mtHint').textContent=''; mtCountdown(); }
@@ -712,24 +714,42 @@ function nextRound(){
   S.showT=performance.now(); S.last=S.showT;   /* v8: SIN limite para memorizar: las figuras se quedan hasta que empiezas el 1er gesto; ese tiempo SI cuenta (reloj total y reaccion del 1er gesto) */
 }
 /* ---------- Limite (v9): un color cada vez, un gesto por color ---------- */
-function limNext(){
-  var v; do{ v=Math.floor(Math.random()*4); }while(v===S.limPrev); S.limPrev=v;
-  S.exp=[S.map[v]]; S.k=0; S.len=1; S.phase='answer';
-  if(!$('mtC0')) mtGridMake();
-  var cell; do{ cell=Math.floor(Math.random()*X_GRID*X_GRID); }while(cell===S.limCell);
-  var old=$('mtC'+S.limCell); if(old) old.innerHTML=''; S.limCell=cell;
-  $('mtC'+cell).innerHTML=symSvg(v,Math.floor(Math.random()*4),mtCellSize());
-  $('mtHint').textContent='Haz el gesto de este color';
-  S.showT=performance.now(); S.last=S.showT;
+function limStart(){
+  S.lq={}; S.lInt=L_SPAWN_MS; S.limN=0; S.phase='answer'; S.last=performance.now();
+  mtGridMake();
+  $('mtHint').textContent='Haz el gesto de cada color sobre su casilla';
+  xT(limSpawn,500);
 }
-function limGesture(g,t){
-  var ok=(g===S.exp[0]), rt=Math.max(1,Math.round(t-S.showT)), st=$('mtStage');
-  if(ok){ S.times.push(rt); S.pts++; S.pressed++; S.remain+=LIM_BONUS_MS; $('stLast').textContent=String(rt); }
-  else { S.errs++; S.remain-=LIM_PENAL_MS; $('stLast').textContent='−5 s'; }
+function limSpawn(){
+  if(S.phase!=='answer') return;
+  var free=[], n; for(n=0;n<X_GRID*X_GRID;n++){ if(!S.lq[n]) free.push(n); }
+  if(!free.length){ S.phase='end'; finishRun('full'); return; }
+  var cell=free[Math.floor(Math.random()*free.length)], v=Math.floor(Math.random()*4);
+  S.lq[cell]={v:v,t:performance.now()}; S.limN++;
+  $('mtC'+cell).innerHTML=colSvg(v,mtCellSize());
+  S.lInt=Math.max(L_MIN_MS,S.lInt*L_FACTOR);
+  xT(limSpawn,S.lInt);
+}
+function limCellAt(pos){   /* casilla ocupada que contiene el punto (con margen); la mas cercana si hay varias */
+  if(!pos) return -1;
+  var best=-1, bd=1e9, k, r, cx, cy, d;
+  for(k in S.lq){ var el=$('mtC'+k); if(!el) continue; r=el.getBoundingClientRect();
+    if(pos.x>=r.left-L_HIT_MARGIN && pos.x<=r.right+L_HIT_MARGIN && pos.y>=r.top-L_HIT_MARGIN && pos.y<=r.bottom+L_HIT_MARGIN){ cx=(r.left+r.right)/2; cy=(r.top+r.bottom)/2; d=(pos.x-cx)*(pos.x-cx)+(pos.y-cy)*(pos.y-cy); if(d<bd){ bd=d; best=parseInt(k,10); } } }
+  return best;
+}
+function limFlash(cell,col){ var el=$('mtC'+cell); if(!el) return; el.style.background=col; xT(function(){ el.style.background=''; },200); }
+function limGesture(g,t,pos){
+  var cell=limCellAt(pos);
+  if(cell<0){ var h=$('mtHint'); if(h){ h.textContent='Hazlo sobre una casilla de color'; xT(function(){ if(S.phase==='answer') h.textContent='Haz el gesto de cada color sobre su casilla'; },900); } return; }
+  var c=S.lq[cell];
+  if(g===S.map[c.v]){
+    var rt=Math.max(1,Math.round(t-c.t)); S.times.push(rt); S.pts++; S.pressed++; S.remain+=LIM_BONUS_MS;
+    $('stLast').textContent=String(rt); delete S.lq[cell];
+    var el=$('mtC'+cell); if(el){ el.innerHTML=''; limFlash(cell,'#bfe8bf'); }
+  } else {
+    S.errs++; S.remain-=LIM_PENAL_MS; $('stLast').textContent='−5 s'; limFlash(cell,'#f3b8b8');
+  }
   $('stAvg').textContent=String(S.pts); $('trialCount').textContent=String(S.errs);
-  if(st){ st.style.background=ok?'#e3f6e3':'#fbe1e1'; setTimeout(function(){ if(st) st.style.background=''; },180); }
-  if(S.remain<=0) return;   /* lo cierra el bucle */
-  limNext();
 }
 /* ---------- Extremo (v15): rejilla de cartas que se dan la vuelta ---------- */
 function xT(fn,ms){ var id=setTimeout(fn,ms); (S.xTimers||(S.xTimers=[])).push(id); return id; }
@@ -802,9 +822,9 @@ function mtGestBad(g,t){
   S.phase='end'; $('mtHint').textContent='Fallo';
   S.nextTo=setTimeout(function(){ S.nextTo=0; finishRun('wrong'); }, 500);
 }
-function onGesture(g,t){
+function onGesture(g,t,pos){
   if(!S.running || S.phase!=='answer') return;
-  if(S.mode==='limite'){ limGesture(g,t); return; }
+  if(S.mode==='limite'){ limGesture(g,t,pos); return; }
   if(S.mode==='extremo'){ extGesture(g,t); return; }
   if(g===S.exp[S.k]) mtGestOk(g,t); else mtGestBad(g,t);
 }
@@ -857,15 +877,17 @@ function mtClassify(){
   }
   return null;
 }
-function mtEmit(g,t){ if(g) onGesture(g,t); else { var h=$('mtHint'); if(h && S.phase==='answer'){ h.textContent='Gesto no reconocido: repítelo'; setTimeout(function(){ if(S.phase==='answer') h.textContent=(S.mode==='limite'?'Haz el gesto de este color':'Haz los gestos en el mismo orden, en cualquier parte'); },900); } } }
-function mtFlushPend(){ if(MTG.pendTo){ clearTimeout(MTG.pendTo); MTG.pendTo=0; } if(MTG.pend){ var p=MTG.pend; MTG.pend=null; mtEmit('tap',p.t); } }
+function mtEmit(g,t,pos){ if(g) onGesture(g,t,pos); else { var h=$('mtHint'); if(h && S.phase==='answer'){ h.textContent='Gesto no reconocido: repítelo'; setTimeout(function(){ if(S.phase==='answer') h.textContent=(S.mode==='limite'?'Haz el gesto de este color':'Haz los gestos en el mismo orden, en cualquier parte'); },900); } } }
+function mtFlushPend(){ if(MTG.pendTo){ clearTimeout(MTG.pendTo); MTG.pendTo=0; } if(MTG.pend){ var p=MTG.pend; MTG.pend=null; mtEmit('tap',p.t,p.pos); } }
 function mtGestEnd(){
   if(MTG.holdTo){ clearTimeout(MTG.holdTo); MTG.holdTo=0; }
-  var g=mtClassify(), p=MTG.pts, upT=p[p.length-1].t, pos=p[p.length-1];
-  if(g==='tap'){
-    if(MTG.pend && (upT-MTG.pend.t)<=MT_DTAP_MS && mtDist(pos,MTG.pend.pos)<=MT_DTAP_DIST){ var pt=MTG.pend; MTG.pend=null; if(MTG.pendTo){ clearTimeout(MTG.pendTo); MTG.pendTo=0; } mtEmit('dtap',pt.t); }
-    else { mtFlushPend(); MTG.pend={t:upT,pos:pos}; MTG.pendTo=setTimeout(function(){ MTG.pendTo=0; if(MTG.pend){ var q=MTG.pend; MTG.pend=null; mtEmit('tap',q.t); } }, MT_DTAP_MS); }
-  } else { mtFlushPend(); mtEmit(g, g==='hold'?MTG.holdT:upT); }
+  var g=mtClassify(), p=MTG.pts, upT=p[p.length-1].t, pos=p[p.length-1], gp=p[0];
+  if((g==='two'||g==='three') && MTG.dpos && MTG.dpos.length){ var sx=0, sy=0; MTG.dpos.forEach(function(q){ sx+=q.x; sy+=q.y; }); gp={x:sx/MTG.dpos.length,y:sy/MTG.dpos.length}; }   /* v18: punto del gesto = inicio (o centro de los dedos) */
+  if(g==='tap' && S.mode==='limite'){ mtEmit('tap',upT,gp); }   /* v18: en Limite no hay doble toque: el toque cuenta ya */
+  else if(g==='tap'){
+    if(MTG.pend && (upT-MTG.pend.t)<=MT_DTAP_MS && mtDist(pos,MTG.pend.pos)<=MT_DTAP_DIST){ var pt=MTG.pend; MTG.pend=null; if(MTG.pendTo){ clearTimeout(MTG.pendTo); MTG.pendTo=0; } mtEmit('dtap',pt.t,pt.pos); }
+    else { mtFlushPend(); MTG.pend={t:upT,pos:pos}; MTG.pendTo=setTimeout(function(){ MTG.pendTo=0; if(MTG.pend){ var q=MTG.pend; MTG.pend=null; mtEmit('tap',q.t,q.pos); } }, MT_DTAP_MS); }
+  } else { mtFlushPend(); mtEmit(g, g==='hold'?MTG.holdT:upT, gp); }
   MTG.ptrs={}; MTG.n=0; MTG.max=0; MTG.downs=0; MTG.pts=[]; MTG.hold=false;
 }
 function mtIgnoreTarget(e){ var t=e.target; return !!(t && t.closest && t.closest('.navbar,button,.results-actions')); }
@@ -880,8 +902,8 @@ document.addEventListener('pointerdown', function(e){
     clearTimeout(MTG.graceTo); MTG.graceTo=0;
     if(now-MTG.t0>MT_CLUSTER_MS){ mtGestEnd(); }
   }
-  if(MTG.n===0 && MTG.downs===0){ MTG.pts=[]; MTG.max=0; MTG.hold=false; MTG.t0=now; }
-  if(now-MTG.t0<=MT_CLUSTER_MS) MTG.downs++;
+  if(MTG.n===0 && MTG.downs===0){ MTG.pts=[]; MTG.max=0; MTG.hold=false; MTG.t0=now; MTG.dpos=[]; }
+  if(now-MTG.t0<=MT_CLUSTER_MS){ MTG.downs++; (MTG.dpos||(MTG.dpos=[])).push({x:e.clientX,y:e.clientY}); }
   MTG.ptrs[e.pointerId]=true; MTG.n++; MTG.max=Math.max(MTG.max,MTG.n);
   if(MTG.n===1){ MTG.pts.push({x:e.clientX,y:e.clientY,t:now});
     if(MTG.holdTo) clearTimeout(MTG.holdTo);
