@@ -367,7 +367,7 @@ if('serviceWorker' in navigator){
           <button class="start-btn rank-btn" ontouchend="event.stopPropagation();" onclick="showRanking()" aria-label="Ranking"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 13.5v7.5M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 4H4v2a3 3 0 0 0 3 3M17 4h3v2a3 3 0 0 1-3 3"/></svg></button>
         </div>
       </div>
-  <div class="app-ver" style="margin-top:6px;padding-top:0;">v23</div>
+  <div class="app-ver" style="margin-top:6px;padding-top:0;">v24</div>
   <div id="user-name-bar" style="margin-top:8px;">
     <div style="display:flex;width:200px;gap:0;margin:0 auto;">
       <input id="user-ini-input" type="text" maxlength="3" placeholder="INI"
@@ -592,7 +592,7 @@ var X_GRID=4, X_SHOW_MS=850;   /* v15: Extremo en rejilla */
 var X_PHASE_SYMS=5, X_INTRA_MS=300, X_BASE_MS=1300, X_STEP_MS=500;   /* v16: tandas: fase k = tandas de k simbolos hasta sumar ~X_PHASE_SYMS (1: 5 tandas de 1; 2: 3 de 2; 3: 2 de 3...); lapso X_INTRA_MS entre los de una tanda; tiempo entre tandas = X_BASE_MS + X_STEP_MS*(k-1) */
 var LIM_ACCEL_S=40;
 var L_SPAWN_MS=1800, L_FACTOR=0.97, L_MIN_MS=500, L_HIT_MARGIN=8;   /* v18: Limite acumulativo (decisiones mias) */   /* v13: Limite = la cuenta atras gasta tiempo cada vez mas rapido: ritmo = 1 + segundos jugados / LIM_ACCEL_S (x2 a los 40 s, x3 a los 80 s...) */
-var LIM_START_MS=30000, LIM_BONUS_MS=1500, LIM_PENAL_MS=5000;   /* v9: Limite = 30 s, +1,5 s por acierto, -5 s por fallo (se puede seguir) */
+var LIM_START_MS=15000, LIM_BONUS_MS=1500, LIM_PENAL_MS=5000;   /* v9: Limite = 30 s, +1,5 s por acierto, -5 s por fallo (se puede seguir) */
 var EXT_BASE_MS=1500, EXT_PER_MS=1800;   /* v2: Extremo = tiempo maximo POR RONDA para hacer los gestos (base + por gesto); la barra superior se vacia solo en la fase de respuesta. El codigo de colores y las figuras se ven sin limite de tiempo */
 /* v3: dos/tres dedos TOLERANTES: los dedos que lleguen dentro de MT_CLUSTER_MS desde el primero cuentan como el mismo gesto aunque los primeros ya se hayan levantado; si al levantarse todos hay 2 o mas dedos, se espera MT_GRACE_MS por si llega otro */
 var MT_CLUSTER_MS=350, MT_GRACE_MS=160;
@@ -662,7 +662,7 @@ function runGame(){
   S.remain=LIM_START_MS;
   $('stAvgK').textContent='Aciertos'; $('stAvg').textContent='0'; $('stLastK').textContent='Último ms'; $('stLast').textContent='--';
   $('stTrialK').textContent=(S.mode==='limite'?'Fallos':(S.mode==='extremo'?'Pendientes':'Ronda')); $('trialCount').textContent='0'; $('stTimeK').textContent='Tiempo'; $('stTime').textContent=(S.mode==='limite'?(LIM_START_MS/1000).toFixed(1):'0:00.00'); setProgress(S.mode==='limite'?1:0);
-  S.errs=0; S.limPrev=-1; S.limOn=false; S.extN=0; S.rLimit=EXT_START_MS; S.roundT=[]; S.limGaps=[]; S.lastHit=0;
+  S.errs=0; S.limPrev=-1; S.limOn=false; S.extN=0; S.rLimit=EXT_START_MS; S.roundT=[]; S.limGaps=[]; S.lastHit=0; S.lastRed=null;
   $('mtStage').innerHTML=''; $('mtHint').textContent='';
   if(S.mode==='normal' || S.mode==='extremo'){ mtGridMake(); mtCountdown(); }   /* v18: la rejilla 4x4 ya se ve detras de la cuenta atras */ else { mtMakeMap(); mtLegend(); }   /* v9: Extremo/Limite empiezan con la pantalla de instrucciones y DESPUES viene la cuenta atras */
 }
@@ -719,9 +719,10 @@ function limStart(){
   S.lq={}; S.lInt=L_SPAWN_MS; S.limN=0; S.phase='answer'; S.last=performance.now();
   mtGridMake();
   $('mtHint').textContent='Haz el gesto de cada color sobre su casilla';
-  xT(limSpawn,500);
+  xT(limPlace,0); xT(limPlace,200); xT(limPlace,400); xT(limSpawn,1200);   /* v24: los primeros estimulos salen DE INMEDIATO (3 seguidos) y luego sigue el ritmo normal */
 }
-function limSpawn(){
+function limSpawn(){ if(S.phase!=='answer') return; limPlace(); if(S.phase==='answer'){ S.lInt=Math.max(L_MIN_MS,S.lInt*L_FACTOR); xT(limSpawn,S.lInt); } }
+function limPlace(){
   if(S.phase!=='answer') return;
   var free=[], n; for(n=0;n<X_GRID*X_GRID;n++){ if(!S.lq[n]) free.push(n); }
   if(!free.length){ S.phase='end'; finishRun('full'); return; }
@@ -729,8 +730,6 @@ function limSpawn(){
   S.lq[cell]={v:v,t:performance.now()}; S.limN++;
   $('mtC'+cell).innerHTML=colSvg(v,mtCellSize());
   if(Object.keys(S.lq).length>=X_GRID*X_GRID){ S.phase='end'; $('mtHint').textContent='Rejilla llena'; xT(function(){ finishRun('full'); },700); return; }   /* v20: en cuanto se llenan las 16 casillas termina (antes esperaba al siguiente color) */
-  S.lInt=Math.max(L_MIN_MS,S.lInt*L_FACTOR);
-  xT(limSpawn,S.lInt);
 }
 function limCellAt(pos){   /* casilla ocupada que contiene el punto (con margen); la mas cercana si hay varias */
   if(!pos) return -1;
@@ -742,6 +741,9 @@ function limCellAt(pos){   /* casilla ocupada que contiene el punto (con margen)
 function limFlash(cell,col){ var el=$('mtC'+cell); if(!el) return; el.style.background=col; xT(function(){ el.style.background=''; },200); }
 function limGesture(g,t,pos){
   var cell=limCellAt(pos);
+  if(cell<0 && S.lastRed && g==='tap' && (t-S.lastRed.t)<=MT_DTAP_LIM_MS && pos && mtDist(pos,S.lastRed.pos)<=60){   /* v24: segundo toque seguido sobre la casilla roja que se acaba de quitar = era un doble toque: fallo */
+    S.lastRed=null; S.errs++; S.remain-=LIM_PENAL_MS; $('stLast').textContent='−5 s'; $('trialCount').textContent=String(S.errs);
+    var hh=$('mtHint'); if(hh){ hh.textContent='Rojo = un solo toque'; xT(function(){ if(S.phase==='answer') hh.textContent='Haz el gesto de cada color sobre su casilla'; },900); } return; }
   if(cell<0){ var h=$('mtHint'); if(h){ h.textContent='Hazlo sobre una casilla de color'; xT(function(){ if(S.phase==='answer') h.textContent='Haz el gesto de cada color sobre su casilla'; },900); } return; }
   var c=S.lq[cell];
   if(g===S.map[c.v]){
@@ -749,6 +751,7 @@ function limGesture(g,t,pos){
     if(S.lastHit) S.limGaps.push(Math.max(1,Math.round(t-S.lastHit))); S.lastHit=t;   /* v21: tiempo entre un acierto y el siguiente */
     $('stLast').textContent=String(rt); delete S.lq[cell];
     var el=$('mtC'+cell); if(el){ el.innerHTML=''; limFlash(cell,'#bfe8bf'); }
+    S.lastRed=(g==='tap')?{t:t,pos:pos}:null;
   } else {
     S.errs++; S.remain-=LIM_PENAL_MS; $('stLast').textContent='−5 s'; limFlash(cell,'#f3b8b8');
   }
