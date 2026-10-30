@@ -367,7 +367,7 @@ if('serviceWorker' in navigator){
           <button class="start-btn rank-btn" ontouchend="event.stopPropagation();" onclick="showRanking()" aria-label="Ranking"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 13.5v7.5M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 4H4v2a3 3 0 0 0 3 3M17 4h3v2a3 3 0 0 1-3 3"/></svg></button>
         </div>
       </div>
-  <div class="app-ver" style="margin-top:6px;padding-top:0;">v22</div>
+  <div class="app-ver" style="margin-top:6px;padding-top:0;">v23</div>
   <div id="user-name-bar" style="margin-top:8px;">
     <div style="display:flex;width:200px;gap:0;margin:0 auto;">
       <input id="user-ini-input" type="text" maxlength="3" placeholder="INI"
@@ -597,6 +597,7 @@ var EXT_BASE_MS=1500, EXT_PER_MS=1800;   /* v2: Extremo = tiempo maximo POR ROND
 /* v3: dos/tres dedos TOLERANTES: los dedos que lleguen dentro de MT_CLUSTER_MS desde el primero cuentan como el mismo gesto aunque los primeros ya se hayan levantado; si al levantarse todos hay 2 o mas dedos, se espera MT_GRACE_MS por si llega otro */
 var MT_CLUSTER_MS=350, MT_GRACE_MS=160;
 /* v14: gestos mas tolerantes: toque hasta 20 px de movimiento, doble toque 380 ms entre levantadas (antes 260) y 90 px, circulo desde 3,4 rad (~195 grados, antes 252) con centro AJUSTADO por minimos cuadrados (antes: centroide, que falla con arcos incompletos) y sin exigir cerrar el circulo */
+var MT_DTAP_LIM_MS=600;   /* v23 */
 var MT_TAP_MOVE=20, MT_TAP_MAX=450, MT_HOLD_MS=550, MT_DTAP_MS=380, MT_DTAP_DIST=90, MT_SWIPE_MIN=40, MT_SWIPE_RATIO=0.72, MT_CIRCLE_MIN=90, MT_CIRCLE_SWEEP=3.4;
 var MT_GESTOS={tap:'un toque',dtap:'doble toque',two:'dos dedos',three:'tres dedos',circle:'dibujar un círculo',circleL:'círculo al revés',hold:'mantener pulsado',up:'deslizar ↑',down:'deslizar ↓',left:'deslizar ←',right:'deslizar →'};
 var MT_LIBX=['up','down','left','right','tap','dtap','two'];   /* v17: Extremo (7 gestos: sin circulo ni mantener) */
@@ -882,6 +883,7 @@ function mtClassify(){
 }
 function mtEmit(g,t,pos){ if(g) onGesture(g,t,pos); else { var h=$('mtHint'); if(h && S.phase==='answer'){ h.textContent='Gesto no reconocido: repítelo'; setTimeout(function(){ if(S.phase==='answer') h.textContent=(S.mode==='limite'?'Haz el gesto de este color':'Haz los gestos en el mismo orden, en cualquier parte'); },900); } } }
 function mtFlushPend(){ if(MTG.pendTo){ clearTimeout(MTG.pendTo); MTG.pendTo=0; } if(MTG.pend){ var p=MTG.pend; MTG.pend=null; mtEmit('tap',p.t,p.pos); } }
+function mtDtapMs(){ return S.mode==='limite' ? MT_DTAP_LIM_MS : MT_DTAP_MS; }   /* v23: en Limite el doble toque (azul) es menos exigente: mas lapso para el 2o toque */
 function mtGestEnd(){
   if(MTG.holdTo){ clearTimeout(MTG.holdTo); MTG.holdTo=0; }
   var g=mtClassify(), p=MTG.pts, upT=p[p.length-1].t, pos=p[p.length-1], gp=p[0];
@@ -889,8 +891,8 @@ function mtGestEnd(){
   var lc=(g==='tap' && S.mode==='limite') ? limCellAt(gp) : -1;
   if(g==='tap' && S.mode==='limite' && (lc<0 || S.map[S.lq[lc].v]==='tap')){ mtEmit('tap',upT,gp); }   /* v22: en Limite el toque sobre una casilla ROJA (o fuera de casilla) cuenta ya; sobre las demas (azul = doble toque) se espera al posible segundo toque */
   else if(g==='tap'){
-    if(MTG.pend && (upT-MTG.pend.t)<=MT_DTAP_MS && mtDist(pos,MTG.pend.pos)<=(S.mode==='limite'?45:MT_DTAP_DIST)){ var pt=MTG.pend; MTG.pend=null; if(MTG.pendTo){ clearTimeout(MTG.pendTo); MTG.pendTo=0; } mtEmit('dtap',pt.t,pt.pos); }
-    else { mtFlushPend(); MTG.pend={t:upT,pos:pos}; MTG.pendTo=setTimeout(function(){ MTG.pendTo=0; if(MTG.pend){ var q=MTG.pend; MTG.pend=null; mtEmit('tap',q.t,q.pos); } }, MT_DTAP_MS); }
+    if(MTG.pend && (upT-MTG.pend.t)<=mtDtapMs() && mtDist(pos,MTG.pend.pos)<=(S.mode==='limite'?60:MT_DTAP_DIST)){ var pt=MTG.pend; MTG.pend=null; if(MTG.pendTo){ clearTimeout(MTG.pendTo); MTG.pendTo=0; } mtEmit('dtap',pt.t,pt.pos); }
+    else { mtFlushPend(); MTG.pend={t:upT,pos:pos}; MTG.pendTo=setTimeout(function(){ MTG.pendTo=0; if(MTG.pend){ var q=MTG.pend; MTG.pend=null; mtEmit('tap',q.t,q.pos); } }, mtDtapMs()); }
   } else { mtFlushPend(); mtEmit(g, g==='hold'?MTG.holdT:upT, gp); }
   MTG.ptrs={}; MTG.n=0; MTG.max=0; MTG.downs=0; MTG.pts=[]; MTG.hold=false;
 }
