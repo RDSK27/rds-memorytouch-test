@@ -600,7 +600,7 @@ var MT_CLUSTER_MS=350, MT_GRACE_MS=160;
 var MT_TAP_MOVE=20, MT_TAP_MAX=450, MT_HOLD_MS=550, MT_DTAP_MS=380, MT_DTAP_DIST=90, MT_SWIPE_MIN=40, MT_SWIPE_RATIO=0.72, MT_CIRCLE_MIN=90, MT_CIRCLE_SWEEP=3.4;
 var MT_GESTOS={tap:'un toque',dtap:'doble toque',two:'dos dedos',three:'tres dedos',circle:'dibujar un círculo',circleL:'círculo al revés',hold:'mantener pulsado',up:'deslizar ↑',down:'deslizar ↓',left:'deslizar ←',right:'deslizar →'};
 var MT_LIBX=['up','down','left','right','tap','dtap','two'];   /* v17: Extremo (7 gestos: sin circulo ni mantener) */
-var MT_LIB10=['up','down','left','right','tap','dtap','two','hold'];   /* v17: Normal (8 gestos: sin circulo) */          /* Normal: figura = gesto (v6: 9 figuras, sin 'tres dedos') */
+var MT_LIB10=['up','down','left','right','tap','dtap','two'];   /* v18: Normal (7 gestos: sin circulo ni mantener) */          /* Normal: figura = gesto (v6: 9 figuras, sin 'tres dedos') */
 var MT_POOL4=['tap','dtap','two','up','down','left','right','circle'];                         /* Extremo/Limite: gestos que se pueden asignar a un color */
 var MT_COLS=[['red','Rojo','#D93A3A'],['blue','Azul','#2F6FD6'],['green','Verde','#2A9D5B'],['yellow','Amarillo','#F2B01E']];
 var MT_INK='#27344D';
@@ -663,7 +663,7 @@ function runGame(){
   $('stTrialK').textContent=(S.mode==='limite'?'Fallos':(S.mode==='extremo'?'Pendientes':'Ronda')); $('trialCount').textContent='0'; $('stTimeK').textContent='Tiempo'; $('stTime').textContent=(S.mode==='limite'?(LIM_START_MS/1000).toFixed(1):'0:00.00'); setProgress(S.mode==='limite'?1:0);
   S.errs=0; S.limPrev=-1; S.limOn=false; S.extN=0; S.rLimit=EXT_START_MS;
   $('mtStage').innerHTML=''; $('mtHint').textContent='';
-  if(S.mode==='normal' || S.mode==='extremo') mtCountdown(); else { mtMakeMap(); mtLegend(); }   /* v9: Extremo/Limite empiezan con la pantalla de instrucciones y DESPUES viene la cuenta atras */
+  if(S.mode==='normal' || S.mode==='extremo'){ mtGridMake(); mtCountdown(); }   /* v18: la rejilla 4x4 ya se ve detras de la cuenta atras */ else { mtMakeMap(); mtLegend(); }   /* v9: Extremo/Limite empiezan con la pantalla de instrucciones y DESPUES viene la cuenta atras */
 }
 function mtCountdown(){
   var n=3, el=$('sqCount');
@@ -691,7 +691,7 @@ function mtLegend(){
   $('mtStage').innerHTML=h; $('mtHint').textContent='Los gestos se hacen sobre la casilla. Cuando lo tengas, pulsa Listo.';
   $('mtOk').addEventListener('click', function(){ if(S.phase!=='legend') return; mtOkGo(); });
 }
-function mtOkGo(){ S.phase='wait'; $('mtStage').innerHTML=''; $('mtHint').textContent=''; mtCountdown(); }
+function mtOkGo(){ S.phase='wait'; mtGridMake(); $('mtHint').textContent=''; mtCountdown(); }
 
 /* ---------- rondas ---------- */
 function mtLenFor(r){ return Math.min(MT_MAXLEN[S.mode]||12, S.mode==='extremo'?r:2+r); }   /* v9: Extremo = 1,2,3...; Normal = 3,4,5... */
