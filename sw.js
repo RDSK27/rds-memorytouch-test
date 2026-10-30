@@ -1,5 +1,5 @@
 /* RDS Memory Touch - Service Worker */
-var CACHE = 'memorytouch-v25';
+var CACHE = 'memorytouch-v26';
 var ASSETS = [
   './',
   './index.html',
