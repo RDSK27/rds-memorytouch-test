@@ -367,7 +367,7 @@ if('serviceWorker' in navigator){
           <button class="start-btn rank-btn" ontouchend="event.stopPropagation();" onclick="showRanking()" aria-label="Ranking"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 13.5v7.5M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 4H4v2a3 3 0 0 0 3 3M17 4h3v2a3 3 0 0 1-3 3"/></svg></button>
         </div>
       </div>
-  <div class="app-ver" style="margin-top:6px;padding-top:0;">v24</div>
+  <div class="app-ver" style="margin-top:6px;padding-top:0;">v25</div>
   <div id="user-name-bar" style="margin-top:8px;">
     <div style="display:flex;width:200px;gap:0;margin:0 auto;">
       <input id="user-ini-input" type="text" maxlength="3" placeholder="INI"
@@ -565,7 +565,7 @@ var S={mode:'normal',stim:'a',total:'a',name:'RDS',sport:'',times:[],t0:0,runnin
   round:0,len:0,seq:[],exp:[],k:0,phase:'',refT:0,remain:0,last:0,roundPct:[],map:null,failInfo:null,pts:0,rounds:0,longest:0,dpr:1};
 
 /* ---------- MEMORY TOUCH (2026-10-28) ----------
-   v18: LIMITE = colores que salen en celdas al azar de la rejilla y SE ACUMULAN; no hace falta seguir el orden. Codigo fijo: rojo=un toque, azul=DOBLE TOQUE (v22; antes dos dedos), verde=deslizar abajo, amarillo=deslizar arriba. El gesto se hace SOBRE la casilla (el punto de inicio del gesto, o el centro de los dedos, cae en su celda). Gesto correcto = la casilla desaparece (+LIM_BONUS_MS); gesto equivocado sobre una casilla = fallo (-LIM_PENAL_MS) y la casilla sigue; fuera de una casilla ocupada se ignora. Salen cada L_SPAWN_MS (x L_FACTOR cada vez, suelo L_MIN_MS); acaba al agotarse el tiempo (cuenta atras como v13) o al llenarse la rejilla. Sin letras ni numeros por ahora.
+   v18: LIMITE = colores que salen en celdas al azar de la rejilla y SE ACUMULAN; no hace falta seguir el orden. Codigo fijo: rojo=un toque, azul=DOBLE TOQUE (v22; antes dos dedos), verde=deslizar abajo, amarillo=deslizar arriba. El gesto se hace SOBRE la casilla (el punto de inicio del gesto, o el centro de los dedos, cae en su celda). Gesto correcto = la casilla desaparece (+LIM_BONUS_MS); gesto equivocado sobre una casilla = fallo (-LIM_PENAL_MS) y la casilla sigue; fuera de una casilla ocupada se ignora. v25: sale UNO de inicio y tras cada acierto sale otro AL INSTANTE; ademas, si tardas, salen solos cada L_SPAWN_MS (x L_FACTOR cada vez, suelo L_MIN_MS) y se acumulan; acaba al agotarse el tiempo (cuenta atras como v13) o al llenarse la rejilla. Sin letras ni numeros por ahora.
    v17: SIN circulo en Normal ni en Extremo (Limite lo conserva: amarillo); Extremo tampoco usa 'mantener' (MT_LIBX, 7 gestos). REJILLA 4x4 en TODOS los modos (sin borde rojo). NORMAL: la secuencia sale en las celdas EN ORDEN (1a celda, 2a, 3a...; ronda siguiente = las mismas + la siguiente celda), al empezar el 1er gesto se borran y cada gesto acertado se muestra en SU celda; tope 16 (rejilla llena) y entonces se pasa a resultados. LIMITE: el color sale en una celda al azar de la rejilla.
    v15 (PRUEBA): EXTREMO = rejilla 4x4 (X_GRID). En una celda libre al azar sale una figura de Normal, se ve X_SHOW_MS y se da la vuelta (queda una carta boca abajo). Hay que hacer los gestos EN ORDEN DE APARICION (cola), en cualquier parte de la pantalla; acertar quita la carta mas antigua.
    v16: salen POR TANDAS (de una en una, luego de dos en dos, de tres en tres...) y se acumulan: se pierde al fallar un gesto o al llenarse la rejilla. Resultado = gestos acertados; desempate = reaccion media (desde que el gesto es 'el que toca': max(aparicion de la carta, gesto anterior)). Sin colores ni leyenda.
@@ -591,7 +591,7 @@ var EXT_START_MS=5000, EXT_STEP_MS=200;   /* v13: Extremo = limite por estimulo 
 var X_GRID=4, X_SHOW_MS=850;   /* v15: Extremo en rejilla */
 var X_PHASE_SYMS=5, X_INTRA_MS=300, X_BASE_MS=1300, X_STEP_MS=500;   /* v16: tandas: fase k = tandas de k simbolos hasta sumar ~X_PHASE_SYMS (1: 5 tandas de 1; 2: 3 de 2; 3: 2 de 3...); lapso X_INTRA_MS entre los de una tanda; tiempo entre tandas = X_BASE_MS + X_STEP_MS*(k-1) */
 var LIM_ACCEL_S=40;
-var L_SPAWN_MS=1800, L_FACTOR=0.97, L_MIN_MS=500, L_HIT_MARGIN=8;   /* v18: Limite acumulativo (decisiones mias) */   /* v13: Limite = la cuenta atras gasta tiempo cada vez mas rapido: ritmo = 1 + segundos jugados / LIM_ACCEL_S (x2 a los 40 s, x3 a los 80 s...) */
+var L_SPAWN_MS=2200, L_FACTOR=0.95, L_MIN_MS=450, L_HIT_MARGIN=8;   /* v18: Limite acumulativo (decisiones mias) */   /* v13: Limite = la cuenta atras gasta tiempo cada vez mas rapido: ritmo = 1 + segundos jugados / LIM_ACCEL_S (x2 a los 40 s, x3 a los 80 s...) */
 var LIM_START_MS=15000, LIM_BONUS_MS=1500, LIM_PENAL_MS=5000;   /* v9: Limite = 30 s, +1,5 s por acierto, -5 s por fallo (se puede seguir) */
 var EXT_BASE_MS=1500, EXT_PER_MS=1800;   /* v2: Extremo = tiempo maximo POR RONDA para hacer los gestos (base + por gesto); la barra superior se vacia solo en la fase de respuesta. El codigo de colores y las figuras se ven sin limite de tiempo */
 /* v3: dos/tres dedos TOLERANTES: los dedos que lleguen dentro de MT_CLUSTER_MS desde el primero cuentan como el mismo gesto aunque los primeros ya se hayan levantado; si al levantarse todos hay 2 o mas dedos, se espera MT_GRACE_MS por si llega otro */
@@ -719,9 +719,10 @@ function limStart(){
   S.lq={}; S.lInt=L_SPAWN_MS; S.limN=0; S.phase='answer'; S.last=performance.now();
   mtGridMake();
   $('mtHint').textContent='Haz el gesto de cada color sobre su casilla';
-  xT(limPlace,0); xT(limPlace,200); xT(limPlace,400); xT(limSpawn,1200);   /* v24: los primeros estimulos salen DE INMEDIATO (3 seguidos) y luego sigue el ritmo normal */
+  limPlace(); S.lTimer=xT(limSpawn,S.lInt);   /* v25: sale UNO de inicio; nada mas acertarlo sale el siguiente de inmediato (limHitSpawn); ademas, si tardas, salen solos cada S.lInt ms (cada vez mas rapido) y se acumulan */
 }
-function limSpawn(){ if(S.phase!=='answer') return; limPlace(); if(S.phase==='answer'){ S.lInt=Math.max(L_MIN_MS,S.lInt*L_FACTOR); xT(limSpawn,S.lInt); } }
+function limSpawn(){ if(S.phase!=='answer') return; limPlace(); if(S.phase==='answer'){ S.lInt=Math.max(L_MIN_MS,S.lInt*L_FACTOR); S.lTimer=xT(limSpawn,S.lInt); } }
+function limHitSpawn(){ if(S.phase!=='answer') return; if(S.lTimer){ clearTimeout(S.lTimer); S.lTimer=0; } limPlace(); if(S.phase==='answer'){ S.lInt=Math.max(L_MIN_MS,S.lInt*L_FACTOR); S.lTimer=xT(limSpawn,S.lInt); } }   /* v25: tras cada acierto sale otro al instante y el reloj de salida automatica se reinicia */
 function limPlace(){
   if(S.phase!=='answer') return;
   var free=[], n; for(n=0;n<X_GRID*X_GRID;n++){ if(!S.lq[n]) free.push(n); }
@@ -752,6 +753,7 @@ function limGesture(g,t,pos){
     $('stLast').textContent=String(rt); delete S.lq[cell];
     var el=$('mtC'+cell); if(el){ el.innerHTML=''; limFlash(cell,'#bfe8bf'); }
     S.lastRed=(g==='tap')?{t:t,pos:pos}:null;
+    limHitSpawn();
   } else {
     S.errs++; S.remain-=LIM_PENAL_MS; $('stLast').textContent='−5 s'; limFlash(cell,'#f3b8b8');
   }
