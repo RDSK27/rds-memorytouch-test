@@ -116,6 +116,44 @@ if('serviceWorker' in navigator){
   }
   .segment button:last-child{border-right:0;}
   .segment button.sel{background:var(--rojo);color:#fff;text-shadow:none;}
+  .segment button.x2on{background:#F5C400;color:#111;text-shadow:none;}
+  .segment button.x2-off{opacity:.35;pointer-events:none;}
+  /* ===== modo x2 (dos jugadores) ===== */
+  body.x2-active header{display:none;}
+  #x2{background:#fff;touch-action:none;-webkit-user-select:none;user-select:none;}
+  .x2-zone{flex:1;min-height:0;display:flex;flex-direction:column;gap:5px;padding:6px 8px 8px;box-sizing:border-box;background:#fff;}
+  .x2-top{transform:rotate(180deg);}
+  .x2-info{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:0 4px;flex:none;font-family:Arial,sans-serif;font-weight:900;white-space:nowrap;}
+  .x2-pts{font-size:26px;line-height:1.15;color:var(--rojo);}
+  .x2-gm{font-size:15px;color:#777;}
+  .x2-gm.x2-me{color:#111;}
+  .x2-cu{font-size:18px;color:#111;}
+  /* la zona de gestos: resaltada en el jugador de turno */
+  .x2-area{flex:1;min-height:0;position:relative;display:flex;border:3px solid #cfcfcf;border-radius:8px;background:#f1f1f1;box-sizing:border-box;touch-action:none;}
+  .x2-area.x2-act{border-color:var(--rojo);background:#fff;}
+  .x2-icons{flex:1;min-width:0;display:flex;flex-wrap:wrap;align-content:flex-start;justify-content:center;gap:4px;padding:6px;overflow:hidden;pointer-events:none;}
+  .x2-ic{line-height:0;}
+  .x2-panel{touch-action:pan-y;position:absolute;inset:-3px;z-index:2;display:none;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:6px 12px;box-sizing:border-box;background:#fff;border:2px solid #111;border-radius:8px;text-align:center;overflow:auto;font-family:Arial,sans-serif;color:#111;}
+  .x2-panel.on{display:flex;}
+  .x2-pt{font-size:21px;font-weight:900;line-height:1.15;color:var(--rojo);}
+  .x2-pr{font-size:15px;font-weight:700;line-height:1.25;}
+  .x2-rules{font-size:13px;font-weight:600;line-height:1.25;}
+  .x2-who{font-size:15px;font-weight:900;color:var(--rojo);}
+  .x2-pbs{display:flex;gap:10px;}
+  .x2-bt{min-width:120px;padding:11px 16px;background:var(--rojo);color:#fff;border:0;border-radius:6px;font:900 15px Arial,sans-serif;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;}
+  .x2-bt.x2-sec{background:#111;}
+  .x2-bt:disabled{background:#8a8a8a;cursor:default;}
+  @media (max-height:620px){ .x2-panel{gap:3px;padding:2px 8px;} .x2-pt{font-size:17px;} .x2-pr{font-size:12px;line-height:1.15;} .x2-rules{font-size:11px;line-height:1.1;} .x2-who{font-size:13px;} .x2-bt{min-width:104px;padding:7px 12px;font-size:14px;} }
+  /* banda central: la figura nueva */
+  .x2-mid{display:flex;align-items:center;justify-content:center;position:relative;flex:none;height:84px;background:#111;border-top:3px solid #b03020;border-bottom:3px solid #b03020;box-sizing:border-box;}
+  #x2Slot{width:68px;height:68px;border-radius:8px;display:none;align-items:center;justify-content:center;line-height:0;}
+  #x2Slot.x2-show{display:flex;background:#fff;}
+  #x2Slot.x2-back{background:#3a3a3a;border:2px solid #666;box-sizing:border-box;}
+  #x2Slot.x2-bad{outline:3px solid #ff5a45;}
+  #x2Stim{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;gap:10px;border-radius:8px;}
+  #x2Stim.x2-lights{background:#fff;padding:6px 12px;}
+  .x2-lt{display:block;width:24px;height:24px;border-radius:50%;background:#d8281c;box-shadow:inset 0 3px 5px rgba(255,255,255,.35),0 0 10px rgba(216,40,28,.7);}
+  #x2Stop{position:absolute;right:10px;top:50%;margin-top:-20px;width:40px;height:40px;padding:0;border-radius:50%;border:2px solid #fff;background:#b03020;color:#fff;font:900 20px Arial,sans-serif;line-height:1;cursor:pointer;z-index:2;}
   #segEstimulo,#segEnsayos{margin-top:0;}
 
   /* ---------- Acciones (mas pequenas y estrechas, como en la referencia) ---------- */
@@ -345,6 +383,7 @@ if('serviceWorker' in navigator){
       <button class="sel" data-v="normal">Normal</button>
       <button data-v="extremo">Extremo</button>
       <button data-v="limite">L&#237;mite</button>
+      <button data-v="x2">x2</button>
     </div>
 
     <div class="segment" id="segEstimulo">
@@ -367,7 +406,7 @@ if('serviceWorker' in navigator){
           <button class="start-btn rank-btn" ontouchend="event.stopPropagation();" onclick="showRanking()" aria-label="Ranking"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 13.5v7.5M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 4H4v2a3 3 0 0 0 3 3M17 4h3v2a3 3 0 0 1-3 3"/></svg></button>
         </div>
       </div>
-  <div class="app-ver" style="margin-top:6px;padding-top:0;">v26</div>
+  <div class="app-ver" style="margin-top:6px;padding-top:0;">v27</div>
   <div id="user-name-bar" style="margin-top:8px;">
     <div style="display:flex;width:200px;gap:0;margin:0 auto;">
       <input id="user-ini-input" type="text" maxlength="3" placeholder="INI"
@@ -432,6 +471,28 @@ if('serviceWorker' in navigator){
     <button class="game-ctrl-btn" onclick="goHome()">&#8592; Inicio</button>
     <button class="game-ctrl-btn" style="border-right:none;border-left:1px solid #333;" onclick="repeatGame()">&#8634; Repetir</button>
   </div>
+  </section>
+
+  <section id="x2" class="screen">
+    <div class="x2-zone x2-top" id="x2z1">
+      <div class="x2-info"><span class="x2-pts"></span><span class="x2-gm"></span><span class="x2-cu"></span></div>
+      <div class="x2-area">
+        <div class="x2-icons"></div>
+        <div class="x2-panel"></div>
+      </div>
+    </div>
+    <div class="x2-mid">
+      <div id="x2Slot"></div>
+      <div id="x2Stim"></div>
+      <button id="x2Stop" type="button" aria-label="Parar">&#10005;</button>
+    </div>
+    <div class="x2-zone x2-bot" id="x2z0">
+      <div class="x2-info"><span class="x2-pts"></span><span class="x2-gm"></span><span class="x2-cu"></span></div>
+      <div class="x2-area">
+        <div class="x2-icons"></div>
+        <div class="x2-panel"></div>
+      </div>
+    </div>
   </section>
 
   <section id="result" class="screen">
@@ -519,7 +580,7 @@ if('serviceWorker' in navigator){
 <script>
 "use strict";
 function $(id){ return document.getElementById(id); }
-function show(id){ if(id!=='ranking' && typeof stopRankWatch==='function') stopRankWatch(); var s=document.querySelectorAll('.screen'); for(var i=0;i<s.length;i++) s[i].classList.remove('active'); $(id).classList.add('active'); document.body.classList.toggle('home-active', id==='home'); }
+function show(id){ if(id!=='ranking' && typeof stopRankWatch==='function') stopRankWatch(); var s=document.querySelectorAll('.screen'); for(var i=0;i<s.length;i++) s[i].classList.remove('active'); $(id).classList.add('active'); document.body.classList.toggle('home-active', id==='home'); document.body.classList.toggle('x2-active', id==='x2'); }
 function two(n){ return (n<10?'0':'')+n; }
 function fmtTime(ms){ var cs=Math.floor(ms/10), cc=cs%100, s=Math.floor(cs/100), sec=s%60, m=Math.floor(s/60); return m+':'+two(sec)+'.'+two(cc); }
 function fmtDate(ts){ if(!ts) return ''; var d=new Date(ts); return two(d.getDate())+'/'+two(d.getMonth()+1); }
@@ -554,6 +615,7 @@ function seg(id){
   var box=$(id);
   box.addEventListener('click', function(e){
     var b=e.target.closest('button'); if(!b || b.hasAttribute('data-soon')) return;
+    if(b.getAttribute('data-v')==='x2'){ xToggle(b); return; }
     var all=box.querySelectorAll('button');
     for(var i=0;i<all.length;i++) all[i].classList.remove('sel');
     b.classList.add('sel');
@@ -639,7 +701,8 @@ function mtGridMake(){
 function mtCellSize(){ return Math.floor(S.xSide/X_GRID)-14; }
 function mtMark(k,g,ok){ var c=$('mtC'+k); if(!c) return; c.style.background=ok?'#d6f0d6':'#f7d0d0'; c.style.borderColor=ok?'#5cb85c':'#D93A3A'; c.innerHTML=figSvg(g,mtCellSize(),ok?'#1f6b3a':'#a32020'); }
 /* ---------- arranque ---------- */
-function startGame(){ try{ warmRank(selVal('segModo')||'normal', selVal('segEstimulo')||'a', selVal('segEnsayos')||'a'); }catch(e){}
+function startGame(){ if(isX2()){ startX2(); return; }
+  try{ warmRank(selVal('segModo')||'normal', selVal('segEstimulo')||'a', selVal('segEnsayos')||'a'); }catch(e){}
   S.mode=selVal('segModo')||'normal'; S.stim=selVal('segEstimulo')||'a'; S.total=selVal('segEnsayos')||'a';
   var nm=($('user-ini-input').value||'RDS').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
   S.name=nm||'RDS';
@@ -1320,7 +1383,205 @@ function warmRank(mode,stim,total){
   window.fbLoad(mode,stim,total).then(function(rows){ if(rows){ saveRankCache(rcKey, rows); } }).catch(function(){});
 }
 
-function goHome(){ if(S.countIv){clearInterval(S.countIv);S.countIv=0;} if(S.coverTo){clearTimeout(S.coverTo);S.coverTo=0;} if(S.nextTo){clearTimeout(S.nextTo);S.nextTo=0;} $('sqCount').textContent=''; S.running=false; S.lock=true; cancelAnimationFrame(S.raf); show('home'); }
+/* ---------- modo x2: dos jugadores en un movil, sin ranking (2026-11-08; misma estructura que Memory Cards x2) ----------
+   Solo Normal, por turnos. Jugador 1 = mitad de abajo, jugador 2 = mitad de arriba (girada 180 grados). Sin doble toque: flechas (deslizar), un toque y dos dedos.
+   En la banda sale una figura y desaparece en cuanto el jugador de turno empieza a responder. En su zona hace en orden todos los gestos que han salido, de memoria, incluido el nuevo; cada gesto deja su icono y, al terminar, se borran y le toca al otro con una figura mas.
+   La flecha apunta a un lado FISICO: lo que para el jugador 1 es arriba, para el 2 es abajo. Al de arriba le basta seguir lo que ve (clientX/Y son de pantalla) y sus iconos se dibujan girados para verlos igual que hizo el gesto.
+   Gana el juego el que no falla: quien hace otro gesto, o tarda mas de X_LIMIT ms en uno, lo pierde. Mejor de 3. El primer juego lo empieza uno al azar y luego se alternan. Un gesto no reconocido se ignora. */
+var X={on:false,games:[0,0],gameNo:1,state:'',to:0,cd:0,iv:0,ends:0,seq:[],cur:0,turn:0,starter:0,flipped:false,g:null,msg:'',msgTo:0,ready:[false,false]};
+var X_LIB=['up','down','left','right','tap','two'];   /* MT_LIB10 sin el doble toque */
+var X_OPP={up:'down',down:'up',left:'right',right:'left'};
+var X_LIMIT=6000, X_GAP=900, X_REVEAL=1500, X_WINGAMES=2, X_ORD=['primer','segundo','tercer'];
+function isX2(){ return $('segModo').querySelector('[data-v="x2"]').classList.contains('x2on'); }
+function xToggle(b){
+  var box=$('segModo'), on=b.classList.toggle('x2on');
+  ['extremo','limite'].forEach(function(v){   /* x2 solo en Normal */
+    var o=box.querySelector('[data-v="'+v+'"]');
+    o.classList.toggle('x2-off',on);
+    if(on && o.classList.contains('sel')){ o.classList.remove('sel'); box.querySelector('[data-v="normal"]').classList.add('sel'); }
+  });
+}
+function xClear(){ if(X.to){ clearTimeout(X.to); X.to=0; } xClearCd(); xGReset(); }
+function xClearCd(){ if(X.cd){ clearTimeout(X.cd); X.cd=0; } if(X.iv){ clearInterval(X.iv); X.iv=0; } }
+function xGReset(){ if(X.g && X.g.grace) clearTimeout(X.g.grace); X.g=null; }
+function xZone(p,sel){ return $('x2z'+p).querySelector(sel); }
+function xPanel(p,html){ var e=xZone(p,'.x2-panel'); e.innerHTML=html||''; e.classList.toggle('on',!!html); }
+function xPanelsOff(){ xPanel(0); xPanel(1); }
+function xBtn(act,txt,sec){ return '<button class="x2-bt'+(sec?' x2-sec':'')+'" type="button" data-x="'+act+'">'+txt+'</button>'; }
+function xRes(a,b){ return a+' &ndash; '+b; }
+function xLightsOff(){ var b=$('x2Stim'); b.className=''; b.innerHTML=''; }
+function xFig(key,bad){ var s=$('x2Slot'); s.className=bad?'x2-show x2-bad':'x2-show'; s.innerHTML=figSvg(key,58,bad?'#D93A3A':null); }
+function xFigHide(){ var s=$('x2Slot'); s.className='x2-show x2-back'; s.innerHTML=''; }
+function xFigOff(){ var s=$('x2Slot'); s.className=''; s.innerHTML=''; }
+function xKey(p,k){ return p===1&&X_OPP[k]?X_OPP[k]:k; }   /* la zona de arriba esta girada: asi el icono apunta al mismo lado fisico */
+function xIcon(p,k,bad){
+  var w=xZone(p,'.x2-icons'), n=w.children.length+1, sz=n>21?30:(n>12?38:46), d=document.createElement('div');
+  d.className='x2-ic'; d.innerHTML=figSvg(xKey(p,k),sz,bad?'#D93A3A':null);
+  if(n===13||n===22){ [].forEach.call(w.querySelectorAll('svg'),function(v){ v.setAttribute('width',sz); v.setAttribute('height',sz); }); }
+  w.appendChild(d);
+}
+function xIconsOff(){ xZone(0,'.x2-icons').innerHTML=''; xZone(1,'.x2-icons').innerHTML=''; }
+function xRender(){
+  var sec=X.state==='input'?Math.max(0,Math.ceil((X.ends-performance.now())/1000)):0;
+  for(var p=0;p<2;p++){
+    var mine=X.turn===p, act=X.state==='input', el=xZone(p,'.x2-gm');
+    xZone(p,'.x2-pts').innerHTML=xRes(X.games[p],X.games[1-p]);
+    if(!(X.msg && mine)) el.textContent=act?(mine?'Tu turno · '+sec:'Turno rival'):''; else el.textContent=X.msg;
+    el.classList.toggle('x2-me',act && mine);
+    xZone(p,'.x2-cu').textContent=act?(X.cur+1)+'/'+X.seq.length:(X.seq.length===1?'1 figura':(X.seq.length?X.seq.length+' figuras':''));
+    xZone(p,'.x2-area').classList.toggle('x2-act',act && mine);
+  }
+}
+function xDraw(){   /* nunca la misma dos veces seguidas */
+  var k, last=X.seq[X.seq.length-1];
+  do { k=X_LIB[Math.floor(Math.random()*X_LIB.length)]; } while(k===last);
+  return k;
+}
+function xReset(){ xClear(); X.games=[0,0]; X.gameNo=1; X.seq=[]; X.msg=''; xPanelsOff(); xLightsOff(); xFigOff(); xIconsOff(); }
+function startX2(){   /* pantalla inicial con la informacion para cada jugador */
+  xReset(); X.on=false; X.state='intro'; X.ready=[false,false]; X.starter=Math.random()<0.5?0:1; X.turn=X.starter;
+  show('x2'); $('x2Stop').style.display='block'; xRender();
+  for(var p=0;p<2;p++) xPanel(p,'<div class="x2-pt">Jugador '+(p+1)+'</div>'
+    +'<div class="x2-pr">Uno contra uno, al mejor de 3 juegos. Pierde el que falla.</div>'
+    +'<div class="x2-rules">En tu zona, haz en orden los gestos de todas las figuras que han salido: deslizar, un toque o dos dedos. La nueva desaparece en cuanto empiezas. Luego le toca al otro, con una m&aacute;s.</div>'
+    +'<div class="x2-who">'+(X.starter===p?'Empiezas t&uacute;':'Empieza el Jugador '+(X.starter+1))+'</div>'
+    +xBtn('start','Empezar'));
+}
+function xReady(p,b,a){   /* Empezar/Continuar: arranca cuando lo han pulsado los dos */
+  X.ready[p]=true; b.disabled=true; b.textContent='Esperando';
+  if(!X.ready[0] || !X.ready[1]) return;
+  X.ready=[false,false];
+  if(a==='start') xBegin(); else xContinue();
+}
+function xBegin(){ xReset(); X.on=true; $('x2Stop').style.display='block'; xGame(); }
+function xContinue(){ X.gameNo++; X.starter=1-X.starter; xGame(); }
+function xGame(){ X.seq=[]; X.turn=X.starter; xPanelsOff(); xFigOff(); xIconsOff(); xLights(); }
+function xLights(){   /* semaforo: 3 luces rojas, se quita una cada 0,8 s; al quitar la tercera sale la primera figura */
+  var box=$('x2Stim'), n=3;
+  X.state='count'; box.className='x2-lights'; xRender();
+  function draw(){ var h='', i; for(i=0;i<n;i++) h+='<i class="x2-lt"></i>'; box.innerHTML=h; }
+  draw();
+  function step(){
+    X.to=setTimeout(function(){ X.to=0; if(!X.on) return; n--; if(n<=0){ xLightsOff(); xNewFig(); return; } draw(); step(); }, 800);
+  }
+  step();
+}
+function xNewFig(){
+  var k=xDraw();
+  X.seq.push(k); X.cur=0; X.flipped=false; X.msg='';
+  xIconsOff(); xFig(k);
+  X.state='input'; xStartCd(); xRender();
+}
+function xStartCd(){
+  xClearCd();
+  X.ends=performance.now()+X_LIMIT;
+  X.cd=setTimeout(function(){ X.cd=0; if(X.state==='input') xFail(X.turn,null); }, X_LIMIT);
+  X.iv=setInterval(xRender,200);
+}
+function xSay(t){ X.msg=t; if(X.msgTo) clearTimeout(X.msgTo); X.msgTo=setTimeout(function(){ X.msgTo=0; X.msg=''; xRender(); },1000); xRender(); }
+/* ---- reconocedor de gestos del jugador de turno (mismos umbrales que el modo de un jugador, sin doble toque ni mantener) ---- */
+function xDown(p,e){
+  if(!X.on || X.state!=='input' || X.turn!==p) return;
+  if(!X.flipped){ X.flipped=true; xFigHide(); }   /* en cuanto empieza a responder */
+  var now=performance.now(), g=X.g;
+  if(g && g.grace){ clearTimeout(g.grace); g.grace=0; if(now-g.t0>MT_CLUSTER_MS){ xEnd(p); g=X.g; if(X.state!=='input') return; } }
+  if(!g) g=X.g={ptrs:{},n:0,max:0,downs:0,pts:[],t0:now,grace:0};
+  if(now-g.t0<=MT_CLUSTER_MS) g.downs++;
+  g.ptrs[e.pointerId]=true; g.n++; g.max=Math.max(g.max,g.n);
+  if(g.n===1) g.pts.push({x:e.clientX,y:e.clientY});
+}
+function xMove(e){ var g=X.g; if(g && g.ptrs[e.pointerId] && g.max===1 && g.downs<2) g.pts.push({x:e.clientX,y:e.clientY}); }
+function xUp(e){
+  var g=X.g; if(!g || !g.ptrs[e.pointerId]) return;
+  if(g.max===1 && g.downs<2) g.pts.push({x:e.clientX,y:e.clientY});
+  delete g.ptrs[e.pointerId]; g.n--;
+  if(g.n>0) return;
+  var p=X.turn, now=performance.now(), still=mtDist(g.pts[0],g.pts[g.pts.length-1])<MT_TAP_MOVE;
+  if((still || g.downs>=2) && now-g.t0<=MT_CLUSTER_MS){ g.grace=setTimeout(function(){ g.grace=0; if(X.g===g) xEnd(p); }, MT_GRACE_MS); }   /* por si llega otro dedo */
+  else xEnd(p);
+}
+function xClassify(g){
+  if(g.downs>=3 || g.max>=3) return 'three';
+  if(g.downs>=2 || g.max>=2) return 'two';
+  var q=g.pts, a=q[0], b=q[q.length-1], i, len=0, maxd=0;
+  for(i=1;i<q.length;i++){ len+=mtDist(q[i],q[i-1]); maxd=Math.max(maxd,mtDist(q[i],a)); }
+  if(maxd<MT_TAP_MOVE) return 'tap';
+  var disp=mtDist(a,b);
+  if(disp>=MT_SWIPE_MIN && disp/len>=MT_SWIPE_RATIO){ var dx=b.x-a.x, dy=b.y-a.y; return Math.abs(dx)>=Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up'); }
+  return null;
+}
+function xEnd(p){
+  var g=X.g, k=xClassify(g);
+  X.g=null;
+  if(!X.on || X.state!=='input' || X.turn!==p) return;
+  if(!k){ xSay('Gesto no reconocido'); return; }
+  if(k!==X.seq[X.cur]){ xIcon(p,k,true); xFail(p,k); return; }
+  xIcon(p,k,false);
+  X.cur++;
+  if(X.cur>=X.seq.length){   /* secuencia terminada: se borra y le toca al otro */
+    xClearCd();
+    X.state='gap'; X.turn=1-p; X.msg=''; xFigOff(); xRender();
+    X.to=setTimeout(function(){ X.to=0; if(X.on) xNewFig(); }, X_GAP);
+    return;
+  }
+  xStartCd(); xRender();
+}
+function xFail(p,k){   /* se ve la figura que tocaba y se decide el juego */
+  var want=X.seq[X.cur], at=X.cur+1, len=X.seq.length, late=!k;
+  xClearCd(); xGReset();
+  X.state='reveal'; X.msg='';
+  sndFail();
+  xFig(want,true);
+  xRender();
+  for(var q=0;q<2;q++) xZone(q,'.x2-gm').textContent=q===p?(late?'Tiempo':'Fallo'):'Fallo rival';
+  xZone(0,'.x2-cu').textContent='Era esta'; xZone(1,'.x2-cu').textContent='Era esta';
+  X.to=setTimeout(function(){ X.to=0; xGameEnd(1-p,p,at,len,late); }, X_REVEAL);
+}
+function xGameEnd(w,l,at,len,late){
+  var p, why=function(q){ return (q===l?(late?'Has tardado demasiado':'Has fallado'):(late?'Tu rival ha tardado demasiado':'Tu rival ha fallado'))+' en la figura '+at+' de '+len; };
+  X.games[w]++;
+  xFigOff(); xIconsOff();
+  if(X.games[w]>=X_WINGAMES){
+    X.on=false; X.state='end'; xRender(); $('x2Stop').style.display='none';
+    for(p=0;p<2;p++) xPanel(p,'<div class="x2-pt">'+(p===w?'¡Enhorabuena, Jugador '+(p+1)+'!':'Jugador '+(w+1)+' gana el partido')+'</div>'
+      +'<div class="x2-pr">'+(p===w?'Has ganado el partido ':'Resultado ')+xRes(X.games[p],X.games[1-p])+'<br>'+why(p)+'</div>'
+      +'<div class="x2-pbs">'+xBtn('home','Inicio',true)+xBtn('again','Repetir')+'</div>');
+    return;
+  }
+  X.state='between'; X.ready=[false,false]; xRender();
+  for(p=0;p<2;p++) xPanel(p,'<div class="x2-pt">Jugador '+(w+1)+' gana el '+X_ORD[X.gameNo-1]+' juego</div>'
+    +'<div class="x2-pr">'+why(p)+'<br>Juegos '+xRes(X.games[p],X.games[1-p])+'</div>'
+    +'<div class="x2-who">'+((1-X.starter)===p?'Ahora empiezas t&uacute;':'Ahora empieza el Jugador '+(1-X.starter+1))+'</div>'
+    +xBtn('next','Continuar'));
+}
+function xStop(){
+  if(X.state==='intro'){ goHome(); return; }
+  xClear(); X.on=false; X.state='end'; X.msg=''; xLightsOff(); xFigOff(); xIconsOff(); xRender(); $('x2Stop').style.display='none';
+  for(var p=0;p<2;p++) xPanel(p,'<div class="x2-pt">Partida parada</div><div class="x2-pbs">'+xBtn('home','Inicio',true)+xBtn('again','Repetir')+'</div>');
+}
+(function(){
+  var sec=$('x2');
+  sec.addEventListener('pointerdown', function(e){
+    var a=e.target.closest ? e.target.closest('.x2-area') : null; if(!a || e.target.closest('.x2-panel')) return;
+    if(e.cancelable) e.preventDefault();
+    try{ a.setPointerCapture(e.pointerId); }catch(_){}
+    xDown(parseInt(a.closest('.x2-zone').id.slice(3),10),e);
+  }, {passive:false});
+  sec.addEventListener('pointermove', xMove);
+  sec.addEventListener('pointerup', xUp);
+  sec.addEventListener('pointercancel', xUp);
+  sec.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+  sec.addEventListener('click', function(e){
+    var b=e.target.closest ? e.target.closest('[data-x]') : null; if(!b) return;
+    var a=b.getAttribute('data-x');
+    if(a==='start' || a==='next') xReady(parseInt(b.closest('.x2-zone').id.slice(3),10),b,a);
+    else if(a==='again') xBegin();
+    else if(a==='home') goHome();
+  });
+  $('x2Stop').addEventListener('click', xStop);
+})();
+
+function goHome(){ xClear(); X.on=false; X.state=''; if(S.countIv){clearInterval(S.countIv);S.countIv=0;} if(S.coverTo){clearTimeout(S.coverTo);S.coverTo=0;} if(S.nextTo){clearTimeout(S.nextTo);S.nextTo=0;} $('sqCount').textContent=''; S.running=false; S.lock=true; cancelAnimationFrame(S.raf); show('home'); }
 
 seg('segModo'); seg('segEstimulo'); seg('segEnsayos');
 function applyModeUI(){ var l=selVal('segModo')==='limite'; $('segEnsayos').classList.toggle('off', l); $('segEstimulo').classList.toggle('off', l); }
