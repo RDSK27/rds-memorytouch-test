@@ -411,7 +411,7 @@ if('serviceWorker' in navigator){
           <button class="start-btn rank-btn" ontouchend="event.stopPropagation();" onclick="showRanking()" aria-label="Ranking"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 13.5v7.5M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 4H4v2a3 3 0 0 0 3 3M17 4h3v2a3 3 0 0 1-3 3"/></svg></button>
         </div>
       </div>
-  <div class="app-ver" style="margin-top:6px;padding-top:0;">v28</div>
+  <div class="app-ver" style="margin-top:6px;padding-top:0;">v29</div>
   <div id="user-name-bar" style="margin-top:8px;">
     <div style="display:flex;width:200px;gap:0;margin:0 auto;">
       <input id="user-ini-input" type="text" maxlength="3" placeholder="INI"
@@ -1490,7 +1490,7 @@ function xDown(p,e){
   if(!X.on || X.state!=='input' || X.turn!==p) return;
   if(!X.flipped){ X.flipped=true; xFigHide(); }   /* en cuanto empieza a responder */
   var now=performance.now(), g=X.g;
-  if(g && g.grace){ clearTimeout(g.grace); g.grace=0; if(now-g.t0>MT_CLUSTER_MS){ xEnd(p); g=X.g; if(X.state!=='input') return; } }
+  if(g && g.grace){ clearTimeout(g.grace); g.grace=0; xEnd(p); g=X.g; if(X.state!=='input') return; }   /* 2026-11-10: un dedo nuevo tras levantar todos es otro gesto (dos toques seguidos ya no cuentan como dos dedos) */
   if(!g) g=X.g={ptrs:{},n:0,max:0,downs:0,pts:[],t0:now,grace:0};
   if(now-g.t0<=MT_CLUSTER_MS) g.downs++;
   g.ptrs[e.pointerId]=true; g.n++; g.max=Math.max(g.max,g.n);
@@ -1507,8 +1507,9 @@ function xUp(e){
   else xEnd(p);
 }
 function xClassify(g){
-  if(g.downs>=3 || g.max>=3) return 'three';
-  if(g.downs>=2 || g.max>=2) return 'two';
+  if(g.max>=3) return 'three';
+  if(g.max>=2) return 'two';   /* dos dedos apoyados a la vez */
+  if(g.downs>=2) return null;
   var q=g.pts, a=q[0], b=q[q.length-1], i, len=0, maxd=0;
   for(i=1;i<q.length;i++){ len+=mtDist(q[i],q[i-1]); maxd=Math.max(maxd,mtDist(q[i],a)); }
   if(maxd<MT_TAP_MOVE) return 'tap';
