@@ -124,10 +124,15 @@ if('serviceWorker' in navigator){
   .x2-zone{flex:1;min-height:0;display:flex;flex-direction:column;gap:5px;padding:6px 8px 8px;box-sizing:border-box;background:#fff;}
   .x2-top{transform:rotate(180deg);}
   .x2-info{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:0 4px;flex:none;font-family:Arial,sans-serif;font-weight:900;white-space:nowrap;}
-  .x2-pts{font-size:26px;line-height:1.15;color:var(--rojo);}
+  .x2-info>span{flex:1;}
+  .x2-pts{font-size:15px;line-height:1.15;color:#111;text-align:right;}
+  .x2-nm{font-size:17px;color:#111;text-align:center;}
   .x2-gm{font-size:15px;color:#777;}
   .x2-gm.x2-me{color:#111;}
-  .x2-cu{font-size:18px;color:#111;}
+  .x2-cu{font-size:15px;color:var(--rojo);}
+  .x2-info b{font-size:22px;}
+  .x2-trow{justify-content:center;min-height:19px;}
+  .x2-trow .x2-gm{text-align:center;}
   /* la zona de gestos: resaltada en el jugador de turno */
   .x2-area{flex:1;min-height:0;position:relative;display:flex;border:3px solid #cfcfcf;border-radius:8px;background:#f1f1f1;box-sizing:border-box;touch-action:none;}
   .x2-area.x2-act{border-color:var(--rojo);background:#fff;}
@@ -406,7 +411,7 @@ if('serviceWorker' in navigator){
           <button class="start-btn rank-btn" ontouchend="event.stopPropagation();" onclick="showRanking()" aria-label="Ranking"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 13.5v7.5M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 4H4v2a3 3 0 0 0 3 3M17 4h3v2a3 3 0 0 1-3 3"/></svg></button>
         </div>
       </div>
-  <div class="app-ver" style="margin-top:6px;padding-top:0;">v27</div>
+  <div class="app-ver" style="margin-top:6px;padding-top:0;">v28</div>
   <div id="user-name-bar" style="margin-top:8px;">
     <div style="display:flex;width:200px;gap:0;margin:0 auto;">
       <input id="user-ini-input" type="text" maxlength="3" placeholder="INI"
@@ -475,7 +480,7 @@ if('serviceWorker' in navigator){
 
   <section id="x2" class="screen">
     <div class="x2-zone x2-top" id="x2z1">
-      <div class="x2-info"><span class="x2-pts"></span><span class="x2-gm"></span><span class="x2-cu"></span></div>
+      <div class="x2-info"><span class="x2-cu"></span><span class="x2-nm"></span><span class="x2-pts"></span></div><div class="x2-info x2-trow"><span class="x2-gm"></span></div>
       <div class="x2-area">
         <div class="x2-icons"></div>
         <div class="x2-panel"></div>
@@ -487,7 +492,7 @@ if('serviceWorker' in navigator){
       <button id="x2Stop" type="button" aria-label="Parar">&#10005;</button>
     </div>
     <div class="x2-zone x2-bot" id="x2z0">
-      <div class="x2-info"><span class="x2-pts"></span><span class="x2-gm"></span><span class="x2-cu"></span></div>
+      <div class="x2-info"><span class="x2-cu"></span><span class="x2-nm"></span><span class="x2-pts"></span></div><div class="x2-info x2-trow"><span class="x2-gm"></span></div>
       <div class="x2-area">
         <div class="x2-icons"></div>
         <div class="x2-panel"></div>
@@ -1391,7 +1396,7 @@ function warmRank(mode,stim,total){
 var X={on:false,games:[0,0],gameNo:1,state:'',to:0,cd:0,iv:0,ends:0,seq:[],cur:0,turn:0,starter:0,flipped:false,g:null,msg:'',msgTo:0,ready:[false,false]};
 var X_LIB=['up','down','left','right','tap','two'];   /* MT_LIB10 sin el doble toque */
 var X_OPP={up:'down',down:'up',left:'right',right:'left'};
-var X_LIMIT=6000, X_GAP=900, X_REVEAL=1500, X_WINGAMES=2, X_ORD=['primer','segundo','tercer'];
+var X_LIMIT=6000, X_GAP=900, X_REVEAL=1500, X_WINGAMES=3, X_ORD=['primer','segundo','tercer'];
 function isX2(){ return $('segModo').querySelector('[data-v="x2"]').classList.contains('x2on'); }
 function xToggle(b){
   var box=$('segModo'), on=b.classList.toggle('x2on');
@@ -1425,10 +1430,11 @@ function xRender(){
   var sec=X.state==='input'?Math.max(0,Math.ceil((X.ends-performance.now())/1000)):0;
   for(var p=0;p<2;p++){
     var mine=X.turn===p, act=X.state==='input', el=xZone(p,'.x2-gm');
-    xZone(p,'.x2-pts').innerHTML=xRes(X.games[p],X.games[1-p]);
+    xZone(p,'.x2-pts').innerHTML='Partido <b>'+xRes(X.games[p],X.games[1-p])+'</b>';
+    xZone(p,'.x2-nm').textContent='Jugador '+(p+1);
     if(!(X.msg && mine)) el.textContent=act?(mine?'Tu turno · '+sec:'Turno rival'):''; else el.textContent=X.msg;
     el.classList.toggle('x2-me',act && mine);
-    xZone(p,'.x2-cu').textContent=act?(X.cur+1)+'/'+X.seq.length:(X.seq.length===1?'1 figura':(X.seq.length?X.seq.length+' figuras':''));
+    xZone(p,'.x2-cu').innerHTML='Set <b>'+(act?(X.cur+1)+'/'+X.seq.length:(X.seq.length===1?'1 figura':(X.seq.length?X.seq.length+' figuras':'')))+'</b>';
     xZone(p,'.x2-area').classList.toggle('x2-act',act && mine);
   }
 }
@@ -1442,7 +1448,7 @@ function startX2(){   /* pantalla inicial con la informacion para cada jugador *
   xReset(); X.on=false; X.state='intro'; X.ready=[false,false]; X.starter=Math.random()<0.5?0:1; X.turn=X.starter;
   show('x2'); $('x2Stop').style.display='block'; xRender();
   for(var p=0;p<2;p++) xPanel(p,'<div class="x2-pt">Jugador '+(p+1)+'</div>'
-    +'<div class="x2-pr">Uno contra uno, al mejor de 3 juegos. Pierde el que falla.</div>'
+    +'<div class="x2-pr">Gana el partido el primero que gane 3 sets.<br>Pierde el set el que falla.</div>'
     +'<div class="x2-rules">En tu zona, haz en orden los gestos de todas las figuras que han salido: deslizar, un toque o dos dedos. La nueva desaparece en cuanto empiezas. Luego le toca al otro, con una m&aacute;s.</div>'
     +'<div class="x2-who">'+(X.starter===p?'Empiezas t&uacute;':'Empieza el Jugador '+(X.starter+1))+'</div>'
     +xBtn('start','Empezar'));
@@ -1544,13 +1550,13 @@ function xGameEnd(w,l,at,len,late){
   if(X.games[w]>=X_WINGAMES){
     X.on=false; X.state='end'; xRender(); $('x2Stop').style.display='none';
     for(p=0;p<2;p++) xPanel(p,'<div class="x2-pt">'+(p===w?'¡Enhorabuena, Jugador '+(p+1)+'!':'Jugador '+(w+1)+' gana el partido')+'</div>'
-      +'<div class="x2-pr">'+(p===w?'Has ganado el partido ':'Resultado ')+xRes(X.games[p],X.games[1-p])+'<br>'+why(p)+'</div>'
+      +'<div class="x2-pr">'+(p===w?'Has ganado el partido ':'Has perdido el partido ')+xRes(X.games[p],X.games[1-p])+'<br>'+why(p)+'</div>'
       +'<div class="x2-pbs">'+xBtn('home','Inicio',true)+xBtn('again','Repetir')+'</div>');
     return;
   }
   X.state='between'; X.ready=[false,false]; xRender();
-  for(p=0;p<2;p++) xPanel(p,'<div class="x2-pt">Jugador '+(w+1)+' gana el '+X_ORD[X.gameNo-1]+' juego</div>'
-    +'<div class="x2-pr">'+why(p)+'<br>Juegos '+xRes(X.games[p],X.games[1-p])+'</div>'
+  for(p=0;p<2;p++) xPanel(p,'<div class="x2-pt">Has '+(p===w?'ganado':'perdido')+' el set '+X.gameNo+'</div>'
+    +'<div class="x2-pr">'+why(p)+'<br>Partido '+xRes(X.games[p],X.games[1-p])+'</div>'
     +'<div class="x2-who">'+((1-X.starter)===p?'Ahora empiezas t&uacute;':'Ahora empieza el Jugador '+(1-X.starter+1))+'</div>'
     +xBtn('next','Continuar'));
 }
